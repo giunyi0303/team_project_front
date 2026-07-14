@@ -377,14 +377,12 @@
 
         createApp({
             setup() {
-                // UI 뷰 전환 라우터 상태 ('home', 'board', 'post-detail', 'post-create', 'post-edit')
+                const API_BASE_URL = 'http://127.0.0.1:8000';
+
                 const currentView = ref('home');
-                
-                // 검색어 바인딩
                 const searchQuery = ref('');
                 const activeSearch = ref('');
 
-                // 퀵 카테고리 정보
                 const infoCategories = [
                     { id: 'tourist', name: '관광지', emoji: '🏔️' },
                     { id: 'culture', name: '문화시설', emoji: '🏛️' },
@@ -396,113 +394,119 @@
                 ];
                 const activeCategory = ref('tourist');
 
-                // 익명 사용자 세션 및 모달 상태
                 const sessionId = ref('');
                 const showSessionModal = ref(false);
                 const SESSION_KEY = 'localhub_anonymous_session_id';
-                const LOCAL_POSTS_KEY = 'localhub_offline_posts';
                 const CHAT_HISTORY_KEY = 'localhub_chat_history_local';
 
-                // 게시글 관리 상태
                 const posts = ref([]);
                 const currentPost = ref(null);
-                
-                // 글 작성/수정 바인딩 폼
+                const loadingPosts = ref(false);
+
                 const postForm = ref({
                     title: '',
                     content: '',
-                    password: '' // 평문 비밀번호 사양
+                    password: ''
                 });
 
-                // 수정/삭제 시 권한 체크용 모달 상태
                 const showAuthModal = ref(false);
-                const authMode = ref(''); // 'edit' or 'delete'
+                const authMode = ref('');
                 const authPassword = ref('');
 
-                // 챗봇 위젯 상태
                 const isChatOpen = ref(false);
                 const chatInput = ref('');
                 const chatHistory = ref([]);
                 const chatBox = ref(null);
 
-                // --- ① 카테고리 더미 데이터 (서울 공공데이터 모사) ---
                 const touristItems = [
-                    { id: 1, title: '경복궁 근정전', subTag: '궁궐/역사', location: '서울 종로구', desc: '조선 왕조의 정궁이자 으뜸 궁궐로, 한국 전통 건축의 정수와 역사적 가치를 보존하고 있습니다.', rating: '4.9' },
-                    { id: 2, title: 'N서울타워 전망대', subTag: '랜드마크', location: '서울 용산구', desc: '남산 정상에 우뚝 솟아 서울의 동서남북 사방 도시 파노라마를 한눈에 볼 수 있는 대표 데이트 코스입니다.', rating: '4.8' },
-                    { id: 3, title: '북촌한옥마을', subTag: '도보 산책', location: '서울 종로구', desc: '전통 한옥들이 골목골목 기와지붕을 맞대고 보존되어 조선시대로 온 듯한 이색 풍경을 선사합니다.', rating: '4.7' }
+                    { id: 1, title: '경복궁 근정전', subTag: '궁궐/역사', location: '서울 종로구', desc: '조선 왕조의 정궁이자 한국 전통 건축의 가치를 간직한 대표 관광지입니다.', rating: '4.9' },
+                    { id: 2, title: 'N서울타워 전망대', subTag: '랜드마크', location: '서울 용산구', desc: '서울 도심의 전경과 야경을 한눈에 볼 수 있는 대표 전망 명소입니다.', rating: '4.8' },
+                    { id: 3, title: '북촌한옥마을', subTag: '도보 산책', location: '서울 종로구', desc: '전통 한옥과 골목 풍경을 경험할 수 있는 서울의 대표 산책 명소입니다.', rating: '4.7' }
                 ];
                 const cultureItems = [
-                    { id: 1, title: '세종문화회관', subTag: '문화공연', location: '서울 종로구', desc: '대강당, 소극장, 전시관을 두루 갖추어 클래식부터 아방가르드 연극까지 모든 장르의 문화 교류가 이루어지는 허브입니다.', rating: '4.8' },
-                    { id: 2, title: '동대문디자인플라자 (DDP)', subTag: '현대건축', location: '서울 중구', desc: '세계적인 건축가 자하 하디드가 설계한 우주선 모양의 복합 공간으로 상시 패션쇼와 포럼이 개최됩니다.', rating: '4.9' }
+                    { id: 1, title: '세종문화회관', subTag: '문화공연', location: '서울 종로구', desc: '공연장과 전시관을 갖춘 서울의 대표 복합문화공간입니다.', rating: '4.8' },
+                    { id: 2, title: '동대문디자인플라자 (DDP)', subTag: '현대건축', location: '서울 중구', desc: '전시, 패션, 디자인 행사가 열리는 복합문화공간입니다.', rating: '4.9' }
                 ];
                 const sportsItems = [
-                    { id: 1, title: '뚝섬 한강공원 윈드서핑장', subTag: '수상 레포츠', location: '서울 광진구', desc: '도심 한가운데 한강의 기분 좋은 미풍을 맞으며 카약, 윈드서핑을 초급 과정부터 배울 수 있는 익스트림 클럽입니다.', rating: '4.6', price: '체험 5만원' },
-                    { id: 2, title: '아차산 암벽등반 피크', subTag: '산악 레포츠', location: '서울 광진구', desc: '초급 등반 코스부터 자연 암벽 트레이닝 구간까지 잘 갖추어져 있어 클라이머들에게 큰 인기입니다.', rating: '4.5' }
+                    { id: 1, title: '뚝섬 한강공원 윈드서핑장', subTag: '수상 레포츠', location: '서울 광진구', desc: '한강에서 다양한 수상 레포츠를 체험할 수 있습니다.', rating: '4.6', price: '체험 5만원' },
+                    { id: 2, title: '아차산 등산 코스', subTag: '산악 레포츠', location: '서울 광진구', desc: '초보자도 비교적 편하게 즐길 수 있는 도심 등산 코스입니다.', rating: '4.5' }
                 ];
                 const shoppingItems = [
-                    { id: 1, title: '인사동 전통 쌈지길', subTag: '쇼핑/공예', location: '서울 종로구', desc: '전통 수공예 가죽공방, 도자기 공예점 및 한글 간판들로 꾸며진 아기자기하고 특색 있는 원형 건축물 쇼핑몰입니다.', rating: '4.7' },
-                    { id: 2, title: '명동 로드 뷰티 스페이스', subTag: '쇼핑몰', location: '서울 중구', desc: '글로벌 케이뷰티(K-Beauty) 최신 트렌드를 전수받고 맞춤형 맞춤 화장품 제조 및 쇼핑을 즐길 수 있는 스트리트.', rating: '4.6' }
+                    { id: 1, title: '인사동 쌈지길', subTag: '쇼핑/공예', location: '서울 종로구', desc: '전통 공예품과 개성 있는 상점을 만날 수 있는 복합문화공간입니다.', rating: '4.7' },
+                    { id: 2, title: '명동 쇼핑거리', subTag: '쇼핑몰', location: '서울 중구', desc: '패션과 뷰티 브랜드가 밀집한 서울의 대표 쇼핑 지역입니다.', rating: '4.6' }
                 ];
                 const stayItems = [
-                    { id: 1, title: '그랜드 하얏트 서울 레지던스', subTag: '숙박', location: '서울 용산구', desc: '남산을 배경으로 아름다운 한강 전망을 보장하며, 품격 있는 야외 아이스링크와 야외 풀장 서비스가 제공됩니다.', rating: '4.9', price: '1박 30만원대~' },
-                    { id: 2, title: '종로 락고재 한옥스테이', subTag: '한옥숙박', location: '서울 종로구', desc: '전통 구들장 온돌 체험과 기와 가옥 독채에서 즐기는 전통 차 시음까지 품격 있는 익명 전통 숙소.', rating: '4.8', price: '1박 20만원대~' }
+                    { id: 1, title: '그랜드 하얏트 서울', subTag: '숙박', location: '서울 용산구', desc: '남산과 한강 전망을 즐길 수 있는 도심 호텔입니다.', rating: '4.9', price: '1박 30만원대~' },
+                    { id: 2, title: '종로 한옥스테이', subTag: '한옥숙박', location: '서울 종로구', desc: '서울 도심에서 전통 한옥 숙박을 경험할 수 있습니다.', rating: '4.8', price: '1박 20만원대~' }
                 ];
                 const courseItems = [
-                    { id: 1, title: '한양도성 성곽길 낙산코스', subTag: '여행코스', location: '서울 혜화역', desc: '혜화문에서 시작해 가파르지 않은 성곽 돌길을 따라 오르며 대학로 극장가와 야경을 세트로 즐기는 낭만 여행길.', rating: '4.7' }
+                    { id: 1, title: '한양도성 낙산 코스', subTag: '여행코스', location: '서울 혜화역', desc: '성곽길을 따라 도심 풍경과 야경을 즐길 수 있는 산책 코스입니다.', rating: '4.7' }
                 ];
                 const festivalItems = [
-                    { id: 1, title: '2026 서울세계불꽃축제', subTag: '축제/행사', location: '서울 여의도 한강공원', desc: '매년 가을 한강의 하늘을 찬란하게 수놓는 글로벌 불꽃 디자이너들의 환상적인 협동 레이저 불꽃 음악 쇼.', rating: '4.9' }
+                    { id: 1, title: '서울세계불꽃축제', subTag: '축제/행사', location: '서울 여의도 한강공원', desc: '한강을 배경으로 대규모 불꽃 공연이 펼쳐지는 서울 대표 축제입니다.', rating: '4.9' }
                 ];
 
-                // 초기 가상 게시글 리스트 (로컬 세이브가 없을 시 기본 제공할 데이터)
-                const defaultPosts = [
-                    { id: 6, title: '서울 경복궁 야간개장 예매 꿀팁 공유합니다.', content: '매번 티켓팅 1분 컷인데, 모바일에서 본인인증 미리해놓고 네이비즘 켜두면 한결 수월해요! 수요일 주중 노려보세요.', password: '1234', date: '2026-07-14' },
-                    { id: 5, title: '여의도 한강공원 배달존3 위치가 어디쯤인가요?', content: '여의나루역 2번출구 나와서 마포대교 쪽으로 좀 걸어가면 배달존 간판 보여요. 주말에는 엄청 혼잡하니 참고하세요.', password: '1111', date: '2026-07-12' },
-                    { id: 4, title: '남산 타워 올라갈 때 순환버스 타고 가세요', content: '남산 도서관 주차장에 차 세우고 순환버스01번 타는게 제일 효율적이고 빠릅니다. 자차 통제 있으니 명심하세요.', password: '2222', date: '2026-07-08' },
-                    { id: 3, title: '인사동 전통 찻집 추천 요청해요.', content: '쌍화차 맛집이나 쑥인절미 디저트 잘하는 조용한 고궁풍 찻집 추천해주실 분 계신가요? 부모님 모시고 갑니다.', password: '3333', date: '2026-07-06' },
-                    { id: 2, title: '뚝섬 한강 윈드서핑 초보자 패키지 솔직후기', content: '난이도 완전 쉬움인데 강사님 너무 친절해서 2시간만에 보드 일어서기 성공했네요. 이번 여름 액티비티로 대박강추!', password: '4444', date: '2026-07-01' },
-                    { id: 1, title: 'LocalHub 서울 권역 커뮤니티 오픈을 축하합니다!', content: '공공데이터 기반으로 깔끔하게 매칭되어 있어서 보기 편리하네요. 좋은 정보 많이 나누었으면 좋겠습니다.', password: '7777', date: '2026-06-30' }
-                ];
-
-                // --- ② 비즈니스 로직 함수 목록 ---
-
-                // 뷰 이동 함수 (SPA)
-                const navigateTo = (viewName) => {
-                    currentView.value = viewName;
-                    searchQuery.value = '';
-                    activeSearch.value = '';
+                const formatDate = (value) => {
+                    if (!value) return '';
+                    return String(value).slice(0, 10);
                 };
 
-                // 카테고리 퀵 선택
+                const normalizePost = (post) => ({
+                    id: post.id,
+                    title: post.title,
+                    content: post.content,
+                    date: formatDate(post.created_at),
+                    view_count: post.view_count ?? 0
+                });
+
+                const requestJson = async (url, options = {}) => {
+                    const response = await fetch(url, options);
+                    let body = null;
+                    try {
+                        body = await response.json();
+                    } catch (_) {
+                        body = null;
+                    }
+                    if (!response.ok) {
+                        throw new Error(body?.detail || '요청 처리 중 오류가 발생했습니다.');
+                    }
+                    return body;
+                };
+
+                const navigateTo = (viewName) => {
+                    currentView.value = viewName;
+                    if (viewName !== 'board') {
+                        searchQuery.value = '';
+                        activeSearch.value = '';
+                    }
+                };
+
                 const selectCategory = (catId) => {
                     activeCategory.value = catId;
                 };
 
-                // 카테고리명 한글 매치
                 const getActiveCategoryName = () => {
                     const cat = infoCategories.find(c => c.id === activeCategory.value);
                     return cat ? cat.name : '관광지';
                 };
 
-                // 카테고리별 공공 데이터 분기 반환
                 const getActiveCategoryItems = () => {
-                    switch (activeCategory.value) {
-                        case 'tourist': return touristItems;
-                        case 'culture': return cultureItems;
-                        case 'sports': return sportsItems;
-                        case 'shopping': return shoppingItems;
-                        case 'stay': return stayItems;
-                        case 'course': return courseItems;
-                        case 'festival': return festivalItems;
-                        default: return touristItems;
-                    }
+                    const data = {
+                        tourist: touristItems,
+                        culture: cultureItems,
+                        sports: sportsItems,
+                        shopping: shoppingItems,
+                        stay: stayItems,
+                        course: courseItems,
+                        festival: festivalItems
+                    };
+                    return data[activeCategory.value] || touristItems;
                 };
 
-                // 세션 발급 및 초기화
                 const initSession = () => {
                     let sid = localStorage.getItem(SESSION_KEY);
                     if (!sid) {
-                        sid = 'usr_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                        sid = 'usr_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now();
                         localStorage.setItem(SESSION_KEY, sid);
                     }
                     sessionId.value = sid;
@@ -513,89 +517,84 @@
                     initSession();
                 };
 
-                // 로컬 스토리지 연동하여 가상 SQLite 저장소 모사 (CRUD)
-                const loadPosts = () => {
-                    const saved = localStorage.getItem(LOCAL_POSTS_KEY);
-                    if (saved) {
-                        posts.value = JSON.parse(saved);
-                    } else {
-                        posts.value = defaultPosts;
-                        localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(defaultPosts));
+                const loadPosts = async () => {
+                    loadingPosts.value = true;
+                    try {
+                        const keyword = activeSearch.value.trim();
+                        const url = keyword
+                            ? `${API_BASE_URL}/api/posts?keyword=${encodeURIComponent(keyword)}`
+                            : `${API_BASE_URL}/api/posts`;
+                        const data = await requestJson(url);
+                        posts.value = data.map(normalizePost);
+                    } catch (error) {
+                        console.error(error);
+                        alert(error.message);
+                    } finally {
+                        loadingPosts.value = false;
                     }
                 };
 
-                // 게시글 상세 뷰 이동
-                const viewPostDetail = (id) => {
-                    const found = posts.value.find(p => p.id === id);
-                    if (found) {
-                        currentPost.value = found;
+                const viewPostDetail = async (id) => {
+                    try {
+                        const post = await requestJson(`${API_BASE_URL}/api/posts/${id}`);
+                        currentPost.value = normalizePost(post);
                         currentView.value = 'post-detail';
+                        await loadPosts();
+                    } catch (error) {
+                        console.error(error);
+                        alert(error.message);
                     }
                 };
 
-                // 검색 실행
-                const triggerSearch = () => {
+                const triggerSearch = async () => {
                     activeSearch.value = searchQuery.value;
+                    await loadPosts();
                 };
 
-                // 필터링된 게시글 계산 프로퍼티 (실시간 반응형 처리)
-                const filteredPosts = computed(() => {
-                    if (!activeSearch.value) return posts.value;
-                    const query = activeSearch.value.toLowerCase().trim();
-                    return posts.value.filter(post => 
-                        post.title.toLowerCase().includes(query) || 
-                        post.content.toLowerCase().includes(query)
-                    );
-                });
+                const filteredPosts = computed(() => posts.value);
 
-                // 새 글 작성 혹은 수정 취소
                 const cancelPostForm = () => {
                     postForm.value = { title: '', content: '', password: '' };
-                    if (currentView.value === 'post-edit') {
-                        currentView.value = 'post-detail';
-                    } else {
-                        currentView.value = 'board';
-                    }
+                    currentView.value = currentView.value === 'post-edit' ? 'post-detail' : 'board';
                 };
 
-                // 글 생성 및 편집 데이터 핸들러
-                const submitPost = () => {
-                    if (currentView.value === 'post-create') {
-                        // Create
-                        const newId = posts.value.length > 0 ? Math.max(...posts.value.map(p => p.id)) + 1 : 1;
-                        const now = new Date();
-                        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                        
-                        const newPost = {
-                            id: newId,
-                            title: postForm.value.title,
-                            content: postForm.value.content,
-                            password: postForm.value.password, // 평문 비밀번호 암호화 불필요 요구
-                            date: dateStr
-                        };
+                const submitPost = async () => {
+                    const payload = {
+                        title: postForm.value.title.trim(),
+                        content: postForm.value.content.trim(),
+                        password: postForm.value.password
+                    };
 
-                        posts.value.unshift(newPost);
-                        localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(posts.value));
-                        navigateTo('board');
-                        
-                        // 초기화
-                        postForm.value = { title: '', content: '', password: '' };
-                    } else if (currentView.value === 'post-edit') {
-                        // Update (수정 모달 승인 완료 후 진입 상태)
-                        const index = posts.value.findIndex(p => p.id === currentPost.value.id);
-                        if (index !== -1) {
-                            posts.value[index].title = postForm.value.title;
-                            posts.value[index].content = postForm.value.content;
-                            posts.value[index].password = postForm.value.password; // 평문 유지
-
-                            localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(posts.value));
-                            currentPost.value = { ...posts.value[index] };
-                            navigateTo('post-detail');
+                    try {
+                        if (currentView.value === 'post-create') {
+                            await requestJson(`${API_BASE_URL}/api/posts`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            postForm.value = { title: '', content: '', password: '' };
+                            await loadPosts();
+                            currentView.value = 'board';
+                            return;
                         }
+
+                        if (currentView.value === 'post-edit' && currentPost.value) {
+                            const updated = await requestJson(`${API_BASE_URL}/api/posts/${currentPost.value.id}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            currentPost.value = normalizePost(updated);
+                            postForm.value = { title: '', content: '', password: '' };
+                            await loadPosts();
+                            currentView.value = 'post-detail';
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        alert(error.message);
                     }
                 };
 
-                // --- ③ 수정/삭제 시 평문 비밀번호 검증 시스템 ---
                 const openAuthModal = (mode) => {
                     authMode.value = mode;
                     authPassword.value = '';
@@ -607,50 +606,49 @@
                     authPassword.value = '';
                 };
 
-                const submitAuthPassword = () => {
-                    if (!currentPost.value) return;
+                const deletePost = async (password) => {
+                    await requestJson(`${API_BASE_URL}/api/posts/${currentPost.value.id}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password })
+                    });
+                    currentPost.value = null;
+                    await loadPosts();
+                    currentView.value = 'board';
+                };
 
-                    // 의뢰서 명시 사항: 암호화 없이 평문으로 저장·비교
-                    if (authPassword.value === currentPost.value.password) {
-                        showAuthModal.value = false;
+                const submitAuthPassword = async () => {
+                    if (!currentPost.value) return;
+                    try {
                         if (authMode.value === 'edit') {
-                            // 수정 화면 이동 및 양식 데이터 셋업
                             postForm.value = {
                                 title: currentPost.value.title,
                                 content: currentPost.value.content,
-                                password: currentPost.value.password
+                                password: authPassword.value
                             };
+                            showAuthModal.value = false;
                             currentView.value = 'post-edit';
                         } else if (authMode.value === 'delete') {
-                            // 게시글 삭제
-                            posts.value = posts.value.filter(p => p.id !== currentPost.value.id);
-                            localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(posts.value));
-                            currentPost.value = null;
-                            navigateTo('board');
+                            await deletePost(authPassword.value);
+                            showAuthModal.value = false;
                         }
-                    } else {
-                        // 비밀번호 불일치 메시지 가상 경보 (alert 금지)
-                        alert("비밀번호가 올바르지 않습니다. 다시 입력해 주세요.");
+                        authPassword.value = '';
+                    } catch (error) {
+                        console.error(error);
+                        alert(error.message);
                     }
                 };
 
-                // --- ④ 챗봇 위젯 비즈니스 가상 로직 ---
                 const loadChatHistory = () => {
                     const saved = localStorage.getItem(CHAT_HISTORY_KEY);
-                    if (saved) {
-                        chatHistory.value = JSON.parse(saved);
-                    }
+                    if (saved) chatHistory.value = JSON.parse(saved);
                 };
 
                 const saveChatMessage = (sender, text) => {
                     chatHistory.value.push({ sender, text });
                     localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(chatHistory.value));
-                    
-                    // 채팅 윈도우 스크롤바 맨 밑으로 동적 조정
                     nextTick(() => {
-                        if (chatBox.value) {
-                            chatBox.value.scrollTop = chatBox.value.scrollHeight;
-                        }
+                        if (chatBox.value) chatBox.value.scrollTop = chatBox.value.scrollHeight;
                     });
                 };
 
@@ -659,44 +657,29 @@
                     chatHistory.value = [];
                 };
 
-                // 챗봇 입력 폼 송신 가공 (의뢰서 요구 질문 유형 최적 대응)
-                const sendChatMessage = () => {
+                const sendChatMessage = async () => {
                     const query = chatInput.value.trim();
                     if (!query) return;
-
                     saveChatMessage('user', query);
                     chatInput.value = '';
 
-                    // 가상 AI 응답 처리 지연 (FastAPI 챗봇 포트 연동 시나리오 모사)
-                    setTimeout(() => {
-                        let answer = "서울에 대해 원하시는 가이드 정보나 게시판의 익명 글을 조회하고 있습니다. 구체적인 키워드(관광지, 축제, 모범음식점 등)를 포함해 주시면 친절하게 안내해 드릴게요!";
-                        const q = query.toLowerCase();
-
-                        if (q.includes('관광') || q.includes('경복궁') || q.includes('타워') || q.includes('한옥')) {
-                            answer = "🏔️ <strong>추천해 드릴 서울 대표 관광지입니다:</strong><br>• <strong>경복궁 근정전:</strong> 조선 시대 전통의 정수를 담은 궁궐 (정동역 도보)<br>• <strong>N서울타워:</strong> 환상적인 도심 야경 전망대<br>• <strong>북촌한옥마을:</strong> 감성 가득한 한옥 골목길";
-                            activeCategory.value = 'tourist';
-                        } else if (q.includes('축제') || q.includes('행사') || q.includes('이벤트')) {
-                            answer = "🎉 <strong>서울 축제 및 행사 일정 안내:</strong><br>• 가을에 진행되는 <strong>'서울세계불꽃축제'</strong>가 여의도 한강공원에서 열릴 예정입니다. 대규모 인파 밀집이 예상되니 대중교통 이용을 필수 권장합니다.";
-                            activeCategory.value = 'festival';
-                        } else if (q.includes('게시') || q.includes('커뮤니티') || q.includes('검색') || q.includes('팁')) {
-                            answer = "💬 <strong>커뮤니티 인기 게시글 조회 결과:</strong><br>• <em>'서울 경복궁 야간개장 예매 꿀팁 공유'</em> (예매 오픈 시 모바일 대기 팁)<br>• <em>'남산 타워 순환 버스 정보'</em> 순환 01번 꿀팁이 주목받고 있습니다.";
-                            navigateTo('board');
-                        } else if (q.includes('숙소') || q.includes('호텔') || q.includes('숙박')) {
-                            answer = "🏨 <strong>안전하고 쾌적한 서울 숙소 제안:</strong><br>• <strong>그랜드 하얏트 서울:</strong> 남산뷰와 품격 있는 풀장 제공<br>• <strong>락고재 한옥스테이:</strong> 옛 정취와 온돌방 차 시음 서비스가 완비된 고요한 휴식터";
-                            activeCategory.value = 'stay';
-                        } else if (q.includes('음식') || q.includes('맛집') || q.includes('식사') || q.includes('순두부')) {
-                            answer = "🍽️ <strong>공공데이터 기반 모범음식점 위치 안내:</strong><br>• 마포역 부근 고기 거리의 모범 가맹점 및 광화문 초당순두부 퓨전 매장이 높은 평점(별점 4.8 이상)을 얻고 있습니다.";
-                        }
-
-                        saveChatMessage('bot', answer);
-                    }, 500);
+                    try {
+                        const result = await requestJson(`${API_BASE_URL}/api/chat`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ message: query })
+                        });
+                        saveChatMessage('bot', result.answer);
+                    } catch (error) {
+                        console.error(error);
+                        saveChatMessage('bot', `⚠️ ${error.message}`);
+                    }
                 };
 
-                // 마운트
-                onMounted(() => {
+                onMounted(async () => {
                     initSession();
-                    loadPosts();
                     loadChatHistory();
+                    await loadPosts();
                 });
 
                 return {
@@ -716,8 +699,7 @@
                     chatBox,
                     sessionId,
                     showSessionModal,
-
-                    // 메서드
+                    loadingPosts,
                     navigateTo,
                     selectCategory,
                     getActiveCategoryName,
