@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
@@ -201,13 +201,23 @@ def verify_post_password(
 @app.delete("/api/posts/{post_id}")
 def delete_post(
     post_id: int,
-    password: str = Query(min_length=1),
+    data: Optional[schemas.PasswordRequest] = Body(default=None),
+    password: Optional[str] = Query(default=None, min_length=1),
     db: Session = Depends(get_db),
 ):
+    password_value = None
+    if data is not None:
+        password_value = data.password
+    elif password is not None:
+        password_value = password
+
+    if not password_value:
+        raise HTTPException(status_code=422, detail="비밀번호를 입력해 주세요.")
+
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if post is None:
         raise HTTPException(status_code=404, detail="게시글이 없습니다.")
-    if post.password != password:
+    if post.password != password_value:
         raise HTTPException(status_code=403, detail="비밀번호가 일치하지 않습니다.")
 
     db.delete(post)
