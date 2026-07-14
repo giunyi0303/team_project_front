@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalHub - 지역 정보 공유 커뮤니티</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js 3 Global Build CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Tailwind Custom Scrollbar 및 애니메이션 보완 -->
+    <style>
+        [v-cloak] { display: none; }
+        
+        /* 챗봇 모바일 전체화면 모드 */
+        @media (max-width: 640px) {
+            .chatbot-window {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                max-height: 100vh !important;
+                border-radius: 0 !important;
+                z-index: 9999 !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col font-sans">
+
+    <div id="app" class="flex flex-col min-h-screen" v-cloak>
+        
+        <!-- ========================================== -->
+        <!-- 상단 글로벌 네비게이션 바 -->
+        <!-- ========================================== -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <!-- 로고 및 서비스명 -->
+                <div @click="navigateTo('home')" class="flex items-center gap-2 cursor-pointer">
+                    <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <span class="text-xl font-black tracking-tight text-gray-900">Local<span class="text-indigo-600">Hub</span></span>
+                </div>
+
+                <!-- 네비게이션 링크 -->
+                <nav class="hidden sm:flex items-center space-x-6 text-sm font-semibold text-gray-600">
+                    <button @click="navigateTo('home')" :class="currentView === 'home' ? 'text-indigo-600' : 'hover:text-indigo-600'">홈</button>
+                    <button @click="navigateTo('board')" :class="currentView === 'board' || currentView === 'post-detail' ? 'text-indigo-600' : 'hover:text-indigo-600'">커뮤니티 게시판</button>
+                </nav>
+
+                <!-- 선택된 권역 태그 표시 -->
+                <div class="flex items-center gap-2">
+                    <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-full">
+                        📍 서울 권역 활성화
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ========================================== -->
+        <!-- 메인 콘텐츠 영역 (SPA 뷰 라우팅 모사) -->
+        <!-- ========================================== -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <!-- ① 홈 화면 (메인 뷰) -->
+            <div v-if="currentView === 'home'" class="space-y-10">
+                <!-- 서울 권역 소개 배너 -->
+                <div class="relative bg-gradient-to-r from-indigo-900 to-indigo-700 rounded-3xl p-8 sm:p-12 text-white overflow-hidden shadow-xl">
+                    <div class="absolute -right-10 -top-10 w-64 h-64 rounded-full bg-indigo-600/30 blur-3xl"></div>
+                    <div class="relative z-10 max-w-2xl">
+                        <span class="bg-indigo-500/30 text-indigo-200 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">권역 정보 서비스</span>
+                        <h1 class="text-3xl sm:text-4xl font-black mt-4 leading-tight">선정 권역: 서울(Seoul)의 지역 정보를 한눈에 만나보세요</h1>
+                        <p class="mt-3 text-sm sm:text-base text-indigo-100/90 leading-relaxed">
+                            LocalHub는 서울의 공공데이터를 기반으로 한 신뢰할 수 있는 지역 정보 제공 플랫폼입니다. 관광지, 문화시설, 레포츠, 숙박 정보는 물론, 주민들과 자유롭게 소통하는 익명 게시판을 지금 이용해 보세요!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 카테고리 바로가기 퀵 메뉴 -->
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4">카테고리 정보 바로가기</h2>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+                        <div v-for="cat in infoCategories" :key="cat.id" @click="selectCategory(cat.id)" class="bg-white border border-gray-200 rounded-2xl p-4 text-center hover:shadow-md hover:border-indigo-500 transition-all cursor-pointer group">
+                            <span class="text-2xl block mb-2">{{ cat.emoji }}</span>
+                            <span class="text-xs font-bold text-gray-700 group-hover:text-indigo-600">{{ cat.name }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 분할 구조: 카테고리 제공 데이터 및 최근 게시글 목록 -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <!-- 왼쪽 2단: 카테고리 데이터 조회 공간 -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-bold text-gray-900">🏛️ {{ getActiveCategoryName() }} 공공 데이터 목록</h2>
+                            <span class="text-xs text-gray-500">제공 데이터 개수: {{ getActiveCategoryItems().length }}개</span>
+                        </div>
+
+                        <!-- 카테고리 데이터 카드 리스트 (스크롤 최적화) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div v-for="item in getActiveCategoryItems()" :key="item.id" class="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-sm transition-all flex flex-col justify-between">
+                                <div>
+                                    <div class="flex items-center justify-between gap-2 mb-2">
+                                        <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">{{ item.subTag || '서울 명소' }}</span>
+                                        <span class="text-xs text-gray-400 font-semibold">{{ item.location || '서울 전체' }}</span>
+                                    </div>
+                                    <h3 class="font-bold text-base text-gray-900 line-clamp-1">{{ item.title }}</h3>
+                                    <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ item.desc }}</p>
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400 font-medium">
+                                    <span>별점: ⭐ {{ item.rating || '4.5' }}</span>
+                                    <span class="text-indigo-600 font-bold" v-if="item.price">{{ item.price }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 오른쪽 1단: 최근 익명 게시글 목록 -->
+                    <div class="space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-bold text-gray-900">💬 최근 익명 게시글</h2>
+                            <button @click="navigateTo('board')" class="text-xs text-indigo-600 font-bold hover:underline">전체보기</button>
+                        </div>
+
+                        <div class="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
+                            <div v-if="posts.length === 0" class="text-center py-8 text-xs text-gray-400">등록된 게시글이 없습니다.</div>
+                            <div v-for="post in posts.slice(0, 5)" :key="post.id" @click="viewPostDetail(post.id)" class="p-3 bg-gray-50 hover:bg-indigo-50/50 rounded-xl transition-all cursor-pointer border border-transparent hover:border-indigo-100">
+                                <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                                    <span class="font-bold text-indigo-500">No. {{ post.id }}</span>
+                                    <span>{{ post.date }}</span>
+                                </div>
+                                <h3 class="font-semibold text-sm text-gray-800 line-clamp-1">{{ post.title }}</h3>
+                                <p class="text-xs text-gray-500 line-clamp-1 mt-0.5">{{ post.content }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ② 게시판 목록 화면 -->
+            <div v-if="currentView === 'board'" class="space-y-6">
+                <!-- 상단 필터 및 검색 바 -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-gray-900">지역 커뮤니티 게시판</h2>
+                        <p class="text-xs text-gray-500 mt-1">로그인 없는 자유로운 익명 소통 공간입니다. (수정/삭제 시 비밀번호 필요)</p>
+                    </div>
+                    <button @click="navigateTo('post-create')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors flex items-center gap-1.5 self-stretch sm:self-auto justify-center">
+                        <span>+ 새 글 작성</span>
+                    </button>
+                </div>
+
+                <!-- 검색창 -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-4 flex gap-2">
+                    <input v-model="searchQuery" type="text" placeholder="검색어를 입력하세요 (제목, 내용)" class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button @click="triggerSearch" class="bg-gray-900 hover:bg-black text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors">
+                        검색
+                    </button>
+                </div>
+
+                <!-- 게시글 테이블 리스트 -->
+                <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                <th class="py-3 px-6 w-20">번호</th>
+                                <th class="py-3 px-6">제목</th>
+                                <th class="py-3 px-6 w-32 text-center">작성자</th>
+                                <th class="py-3 px-6 w-32 text-right">작성일</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-xs">
+                            <tr v-if="filteredPosts.length === 0">
+                                <td colspan="4" class="py-8 text-center text-gray-400">검색 조건에 맞는 게시글이 없습니다.</td>
+                            </tr>
+                            <tr v-for="post in filteredPosts" :key="post.id" @click="viewPostDetail(post.id)" class="hover:bg-indigo-50/20 cursor-pointer transition-all">
+                                <td class="py-4 px-6 text-gray-400 font-bold"># {{ post.id }}</td>
+                                <td class="py-4 px-6 font-semibold text-gray-900 hover:text-indigo-600">{{ post.title }}</td>
+                                <td class="py-4 px-6 text-center text-gray-500">익명</td>
+                                <td class="py-4 px-6 text-right text-gray-400">{{ post.date }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ③ 게시글 상세 화면 -->
+            <div v-if="currentView === 'post-detail' && currentPost" class="max-w-3xl mx-auto space-y-6">
+                <!-- 뒤로가기 버튼 -->
+                <button @click="navigateTo('board')" class="text-xs text-gray-500 hover:text-indigo-600 font-bold flex items-center gap-1">
+                    ◀ 목록으로 돌아가기
+                </button>
+
+                <!-- 게시글 본문 카드 -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+                    <div class="border-b border-gray-100 pb-5">
+                        <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
+                            <span>No. {{ currentPost.id }} | 작성자: 익명</span>
+                            <span>작성시간: {{ currentPost.date }}</span>
+                        </div>
+                        <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900">{{ currentPost.title }}</h2>
+                    </div>
+
+                    <!-- 게시물 본문 내용 -->
+                    <div class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap min-h-[150px]">
+                        {{ currentPost.content }}
+                    </div>
+
+                    <!-- 하단 액션 버튼 그룹 (수정/삭제) -->
+                    <div class="border-t border-gray-100 pt-5 flex justify-end gap-2">
+                        <button @click="openAuthModal('edit')" class="border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold px-4 py-2 rounded-xl text-xs transition-colors">
+                            수정
+                        </button>
+                        <button @click="openAuthModal('delete')" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-4 py-2 rounded-xl text-xs transition-colors">
+                            삭제
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ④ 게시글 작성·수정 화면 -->
+            <div v-if="currentView === 'post-create' || currentView === 'post-edit'" class="max-w-2xl mx-auto space-y-6">
+                <h2 class="text-2xl font-black text-gray-900">
+                    {{ currentView === 'post-create' ? '게시글 작성' : '게시글 수정' }}
+                </h2>
+
+                <form @submit.prevent="submitPost" class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
+                    <!-- 제목 입력 -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-gray-500 uppercase">제목</label>
+                        <input v-model="postForm.title" type="text" placeholder="제목을 입력하세요" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+
+                    <!-- 내용 입력 -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-gray-500 uppercase">내용</label>
+                        <textarea v-model="postForm.content" rows="8" placeholder="내용을 작성하세요" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required></textarea>
+                    </div>
+
+                    <!-- 수정용 비밀번호 등록 (의뢰서 필수사양: 평문 저장/비교) -->
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-gray-500 uppercase">수정용 비밀번호 (평문 저장)</label>
+                        <input v-model="postForm.password" type="password" placeholder="비밀번호를 입력하세요 (수정/삭제 시 검증)" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                        <p class="text-[10px] text-amber-600 font-semibold">⚠️ 의뢰서의 교육 목적 설계 요구에 따라 암호화 없이 저장 및 비교됩니다.</p>
+                    </div>
+
+                    <!-- 버튼 그룹 -->
+                    <div class="flex justify-end gap-2 pt-4">
+                        <button type="button" @click="cancelPostForm" class="border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold px-5 py-2.5 rounded-xl text-xs transition-colors">
+                            취소
+                        </button>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition-colors">
+                            등록
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </main>
+
+        <!-- ========================================== -->
+        <!-- ⑤ 챗봇 위젯 (플로팅 버튼 및 펼친 대화창) -->
+        <!-- ========================================== -->
+        <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+            
+            <!-- (2) 펼쳐진 대화창 화면 -->
+            <div v-show="isChatOpen" class="chatbot-window bg-white border border-gray-200 w-96 max-h-[500px] h-[500px] rounded-2xl shadow-2xl flex flex-col overflow-hidden mb-4 animate-in fade-in slide-in-from-bottom-5 duration-150">
+                <!-- 챗봇 헤더 바 -->
+                <div class="bg-indigo-600 text-white px-4 py-3 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></span>
+                        <span class="font-bold text-xs tracking-wide">서울 관광 안내 AI 챗봇</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <!-- 대화 히스토리 리셋 -->
+                        <button @click="clearChatHistory" title="대화 지우기" class="text-[10px] bg-indigo-700 hover:bg-indigo-800 px-2 py-1 rounded">
+                            초기화
+                        </button>
+                        <button @click="isChatOpen = false" class="text-white hover:text-gray-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 챗 메시지 영역 (스크롤 가능) -->
+                <div ref="chatBox" class="flex-1 overflow-y-auto p-4 space-y-3.5 bg-gray-50 text-xs">
+                    <!-- 챗봇 기본 인사말 -->
+                    <div class="flex items-start gap-2">
+                        <div class="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">🤖</div>
+                        <div class="bg-white border border-gray-200 text-gray-800 rounded-2xl px-3 py-2 max-w-[85%] leading-relaxed shadow-sm">
+                            안녕하세요! 서울 권역의 관광지 추천, 축제 일정, 게시글 검색 등 원하시는 정보를 자유롭게 물어보세요. (대화 히스토리가 익명 식별 코드로 안전하게 유지됩니다.)
+                        </div>
+                    </div>
+
+                    <!-- 채팅 기록 렌더링 -->
+                    <div v-for="(msg, index) in chatHistory" :key="index" :class="['flex items-start gap-2', msg.sender === 'user' ? 'justify-end' : '']">
+                        <div v-if="msg.sender === 'bot'" class="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">🤖</div>
+                        <div 
+                            :class="[
+                                msg.sender === 'user' 
+                                ? 'bg-indigo-600 text-white rounded-2xl px-3 py-2 max-w-[85%] leading-relaxed shadow-sm' 
+                                : 'bg-white border border-gray-200 text-gray-800 rounded-2xl px-3 py-2 max-w-[85%] leading-relaxed shadow-sm'
+                            ]"
+                            v-html="msg.text"
+                        ></div>
+                    </div>
+                </div>
+
+                <!-- 챗봇 푸터 입력창 -->
+                <form @submit.prevent="sendChatMessage" class="p-3 bg-white border-t border-gray-100 flex gap-2">
+                    <input v-model="chatInput" type="text" placeholder="궁금한 서울 정보를 물어보세요..." class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" required>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition-colors">
+                        전송
+                    </button>
+                </form>
+            </div>
+
+            <!-- (1) 접힌 상태 (플로팅 버튼) -->
+            <button @click="isChatOpen = !isChatOpen" class="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center">
+                <svg v-if="!isChatOpen" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+                <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 비밀번호 확인 검증 모달 (의뢰서 6페이지 상세 UI 구현) -->
+        <!-- ========================================== -->
+        <div v-if="showAuthModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+                <h3 class="text-base font-bold text-gray-900 mb-1.5">비밀번호 확인</h3>
+                <p class="text-xs text-gray-500 mb-4 leading-relaxed">
+                    게시글 생성 시 등록했던 비밀번호를 평문으로 입력하여 권한을 검증합니다.
+                </p>
+                
+                <form @submit.prevent="submitAuthPassword">
+                    <input v-model="authPassword" type="password" placeholder="비밀번호를 입력하세요" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4" required>
+                    
+                    <div class="flex justify-end gap-2 text-xs font-semibold">
+                        <button type="button" @click="closeAuthModal" class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-colors">취소</button>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">확인</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 가상 세션 확인 모달 -->
+        <div v-if="showSessionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+                <h3 class="text-base font-bold text-gray-900 mb-1.5">익명 사용자 식별 정보 (UUID)</h3>
+                <p class="text-xs text-gray-500 mb-4 leading-relaxed">
+                    회원가입과 로그인 기능이 없으므로, 로컬 스토리지를 식별 세션으로 가상화하여 백엔드 SQLite DB에 매핑합니다.
+                </p>
+                <div class="bg-gray-100 p-3 rounded-lg border border-gray-200 mb-4">
+                    <code class="text-[11px] font-mono break-all text-indigo-700 font-bold">{{ sessionId }}</code>
+                </div>
+                <div class="flex justify-end gap-2 text-xs font-semibold">
+                    <button @click="regenerateSession" class="bg-amber-100 text-amber-800 hover:bg-amber-200 px-3 py-2 rounded-lg transition-colors">새 코드 발급</button>
+                    <button @click="showSessionModal = false" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">닫기</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Vue.js 애플리케이션 정의 -->
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                // UI 뷰 전환 라우터 상태 ('home', 'board', 'post-detail', 'post-create', 'post-edit')
+                const currentView = ref('home');
+                
+                // 검색어 바인딩
+                const searchQuery = ref('');
+                const activeSearch = ref('');
+
+                // 퀵 카테고리 정보
+                const infoCategories = [
+                    { id: 'tourist', name: '관광지', emoji: '🏔️' },
+                    { id: 'culture', name: '문화시설', emoji: '🏛️' },
+                    { id: 'sports', name: '레포츠', emoji: '🏄' },
+                    { id: 'shopping', name: '쇼핑', emoji: '🛒' },
+                    { id: 'stay', name: '숙박', emoji: '🏨' },
+                    { id: 'course', name: '여행코스', emoji: '🗺️' },
+                    { id: 'festival', name: '축제공연', emoji: '🎉' }
+                ];
+                const activeCategory = ref('tourist');
+
+                // 익명 사용자 세션 및 모달 상태
+                const sessionId = ref('');
+                const showSessionModal = ref(false);
+                const SESSION_KEY = 'localhub_anonymous_session_id';
+                const LOCAL_POSTS_KEY = 'localhub_offline_posts';
+                const CHAT_HISTORY_KEY = 'localhub_chat_history_local';
+
+                // 게시글 관리 상태
+                const posts = ref([]);
+                const currentPost = ref(null);
+                
+                // 글 작성/수정 바인딩 폼
+                const postForm = ref({
+                    title: '',
+                    content: '',
+                    password: '' // 평문 비밀번호 사양
+                });
+
+                // 수정/삭제 시 권한 체크용 모달 상태
+                const showAuthModal = ref(false);
+                const authMode = ref(''); // 'edit' or 'delete'
+                const authPassword = ref('');
+
+                // 챗봇 위젯 상태
+                const isChatOpen = ref(false);
+                const chatInput = ref('');
+                const chatHistory = ref([]);
+                const chatBox = ref(null);
+
+                // --- ① 카테고리 더미 데이터 (서울 공공데이터 모사) ---
+                const touristItems = [
+                    { id: 1, title: '경복궁 근정전', subTag: '궁궐/역사', location: '서울 종로구', desc: '조선 왕조의 정궁이자 으뜸 궁궐로, 한국 전통 건축의 정수와 역사적 가치를 보존하고 있습니다.', rating: '4.9' },
+                    { id: 2, title: 'N서울타워 전망대', subTag: '랜드마크', location: '서울 용산구', desc: '남산 정상에 우뚝 솟아 서울의 동서남북 사방 도시 파노라마를 한눈에 볼 수 있는 대표 데이트 코스입니다.', rating: '4.8' },
+                    { id: 3, title: '북촌한옥마을', subTag: '도보 산책', location: '서울 종로구', desc: '전통 한옥들이 골목골목 기와지붕을 맞대고 보존되어 조선시대로 온 듯한 이색 풍경을 선사합니다.', rating: '4.7' }
+                ];
+                const cultureItems = [
+                    { id: 1, title: '세종문화회관', subTag: '문화공연', location: '서울 종로구', desc: '대강당, 소극장, 전시관을 두루 갖추어 클래식부터 아방가르드 연극까지 모든 장르의 문화 교류가 이루어지는 허브입니다.', rating: '4.8' },
+                    { id: 2, title: '동대문디자인플라자 (DDP)', subTag: '현대건축', location: '서울 중구', desc: '세계적인 건축가 자하 하디드가 설계한 우주선 모양의 복합 공간으로 상시 패션쇼와 포럼이 개최됩니다.', rating: '4.9' }
+                ];
+                const sportsItems = [
+                    { id: 1, title: '뚝섬 한강공원 윈드서핑장', subTag: '수상 레포츠', location: '서울 광진구', desc: '도심 한가운데 한강의 기분 좋은 미풍을 맞으며 카약, 윈드서핑을 초급 과정부터 배울 수 있는 익스트림 클럽입니다.', rating: '4.6', price: '체험 5만원' },
+                    { id: 2, title: '아차산 암벽등반 피크', subTag: '산악 레포츠', location: '서울 광진구', desc: '초급 등반 코스부터 자연 암벽 트레이닝 구간까지 잘 갖추어져 있어 클라이머들에게 큰 인기입니다.', rating: '4.5' }
+                ];
+                const shoppingItems = [
+                    { id: 1, title: '인사동 전통 쌈지길', subTag: '쇼핑/공예', location: '서울 종로구', desc: '전통 수공예 가죽공방, 도자기 공예점 및 한글 간판들로 꾸며진 아기자기하고 특색 있는 원형 건축물 쇼핑몰입니다.', rating: '4.7' },
+                    { id: 2, title: '명동 로드 뷰티 스페이스', subTag: '쇼핑몰', location: '서울 중구', desc: '글로벌 케이뷰티(K-Beauty) 최신 트렌드를 전수받고 맞춤형 맞춤 화장품 제조 및 쇼핑을 즐길 수 있는 스트리트.', rating: '4.6' }
+                ];
+                const stayItems = [
+                    { id: 1, title: '그랜드 하얏트 서울 레지던스', subTag: '숙박', location: '서울 용산구', desc: '남산을 배경으로 아름다운 한강 전망을 보장하며, 품격 있는 야외 아이스링크와 야외 풀장 서비스가 제공됩니다.', rating: '4.9', price: '1박 30만원대~' },
+                    { id: 2, title: '종로 락고재 한옥스테이', subTag: '한옥숙박', location: '서울 종로구', desc: '전통 구들장 온돌 체험과 기와 가옥 독채에서 즐기는 전통 차 시음까지 품격 있는 익명 전통 숙소.', rating: '4.8', price: '1박 20만원대~' }
+                ];
+                const courseItems = [
+                    { id: 1, title: '한양도성 성곽길 낙산코스', subTag: '여행코스', location: '서울 혜화역', desc: '혜화문에서 시작해 가파르지 않은 성곽 돌길을 따라 오르며 대학로 극장가와 야경을 세트로 즐기는 낭만 여행길.', rating: '4.7' }
+                ];
+                const festivalItems = [
+                    { id: 1, title: '2026 서울세계불꽃축제', subTag: '축제/행사', location: '서울 여의도 한강공원', desc: '매년 가을 한강의 하늘을 찬란하게 수놓는 글로벌 불꽃 디자이너들의 환상적인 협동 레이저 불꽃 음악 쇼.', rating: '4.9' }
+                ];
+
+                // 초기 가상 게시글 리스트 (로컬 세이브가 없을 시 기본 제공할 데이터)
+                const defaultPosts = [
+                    { id: 6, title: '서울 경복궁 야간개장 예매 꿀팁 공유합니다.', content: '매번 티켓팅 1분 컷인데, 모바일에서 본인인증 미리해놓고 네이비즘 켜두면 한결 수월해요! 수요일 주중 노려보세요.', password: '1234', date: '2026-07-14' },
+                    { id: 5, title: '여의도 한강공원 배달존3 위치가 어디쯤인가요?', content: '여의나루역 2번출구 나와서 마포대교 쪽으로 좀 걸어가면 배달존 간판 보여요. 주말에는 엄청 혼잡하니 참고하세요.', password: '1111', date: '2026-07-12' },
+                    { id: 4, title: '남산 타워 올라갈 때 순환버스 타고 가세요', content: '남산 도서관 주차장에 차 세우고 순환버스01번 타는게 제일 효율적이고 빠릅니다. 자차 통제 있으니 명심하세요.', password: '2222', date: '2026-07-08' },
+                    { id: 3, title: '인사동 전통 찻집 추천 요청해요.', content: '쌍화차 맛집이나 쑥인절미 디저트 잘하는 조용한 고궁풍 찻집 추천해주실 분 계신가요? 부모님 모시고 갑니다.', password: '3333', date: '2026-07-06' },
+                    { id: 2, title: '뚝섬 한강 윈드서핑 초보자 패키지 솔직후기', content: '난이도 완전 쉬움인데 강사님 너무 친절해서 2시간만에 보드 일어서기 성공했네요. 이번 여름 액티비티로 대박강추!', password: '4444', date: '2026-07-01' },
+                    { id: 1, title: 'LocalHub 서울 권역 커뮤니티 오픈을 축하합니다!', content: '공공데이터 기반으로 깔끔하게 매칭되어 있어서 보기 편리하네요. 좋은 정보 많이 나누었으면 좋겠습니다.', password: '7777', date: '2026-06-30' }
+                ];
+
+                // --- ② 비즈니스 로직 함수 목록 ---
+
+                // 뷰 이동 함수 (SPA)
+                const navigateTo = (viewName) => {
+                    currentView.value = viewName;
+                    searchQuery.value = '';
+                    activeSearch.value = '';
+                };
+
+                // 카테고리 퀵 선택
+                const selectCategory = (catId) => {
+                    activeCategory.value = catId;
+                };
+
+                // 카테고리명 한글 매치
+                const getActiveCategoryName = () => {
+                    const cat = infoCategories.find(c => c.id === activeCategory.value);
+                    return cat ? cat.name : '관광지';
+                };
+
+                // 카테고리별 공공 데이터 분기 반환
+                const getActiveCategoryItems = () => {
+                    switch (activeCategory.value) {
+                        case 'tourist': return touristItems;
+                        case 'culture': return cultureItems;
+                        case 'sports': return sportsItems;
+                        case 'shopping': return shoppingItems;
+                        case 'stay': return stayItems;
+                        case 'course': return courseItems;
+                        case 'festival': return festivalItems;
+                        default: return touristItems;
+                    }
+                };
+
+                // 세션 발급 및 초기화
+                const initSession = () => {
+                    let sid = localStorage.getItem(SESSION_KEY);
+                    if (!sid) {
+                        sid = 'usr_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                        localStorage.setItem(SESSION_KEY, sid);
+                    }
+                    sessionId.value = sid;
+                };
+
+                const regenerateSession = () => {
+                    localStorage.removeItem(SESSION_KEY);
+                    initSession();
+                };
+
+                // 로컬 스토리지 연동하여 가상 SQLite 저장소 모사 (CRUD)
+                const loadPosts = () => {
+                    const saved = localStorage.getItem(LOCAL_POSTS_KEY);
+                    if (saved) {
+                        posts.value = JSON.parse(saved);
+                    } else {
+                        posts.value = defaultPosts;
+                        localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(defaultPosts));
+                    }
+                };
+
+                // 게시글 상세 뷰 이동
+                const viewPostDetail = (id) => {
+                    const found = posts.value.find(p => p.id === id);
+                    if (found) {
+                        currentPost.value = found;
+                        currentView.value = 'post-detail';
+                    }
+                };
+
+                // 검색 실행
+                const triggerSearch = () => {
+                    activeSearch.value = searchQuery.value;
+                };
+
+                // 필터링된 게시글 계산 프로퍼티 (실시간 반응형 처리)
+                const filteredPosts = computed(() => {
+                    if (!activeSearch.value) return posts.value;
+                    const query = activeSearch.value.toLowerCase().trim();
+                    return posts.value.filter(post => 
+                        post.title.toLowerCase().includes(query) || 
+                        post.content.toLowerCase().includes(query)
+                    );
+                });
+
+                // 새 글 작성 혹은 수정 취소
+                const cancelPostForm = () => {
+                    postForm.value = { title: '', content: '', password: '' };
+                    if (currentView.value === 'post-edit') {
+                        currentView.value = 'post-detail';
+                    } else {
+                        currentView.value = 'board';
+                    }
+                };
+
+                // 글 생성 및 편집 데이터 핸들러
+                const submitPost = () => {
+                    if (currentView.value === 'post-create') {
+                        // Create
+                        const newId = posts.value.length > 0 ? Math.max(...posts.value.map(p => p.id)) + 1 : 1;
+                        const now = new Date();
+                        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                        
+                        const newPost = {
+                            id: newId,
+                            title: postForm.value.title,
+                            content: postForm.value.content,
+                            password: postForm.value.password, // 평문 비밀번호 암호화 불필요 요구
+                            date: dateStr
+                        };
+
+                        posts.value.unshift(newPost);
+                        localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(posts.value));
+                        navigateTo('board');
+                        
+                        // 초기화
+                        postForm.value = { title: '', content: '', password: '' };
+                    } else if (currentView.value === 'post-edit') {
+                        // Update (수정 모달 승인 완료 후 진입 상태)
+                        const index = posts.value.findIndex(p => p.id === currentPost.value.id);
+                        if (index !== -1) {
+                            posts.value[index].title = postForm.value.title;
+                            posts.value[index].content = postForm.value.content;
+                            posts.value[index].password = postForm.value.password; // 평문 유지
+
+                            localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(posts.value));
+                            currentPost.value = { ...posts.value[index] };
+                            navigateTo('post-detail');
+                        }
+                    }
+                };
+
+                // --- ③ 수정/삭제 시 평문 비밀번호 검증 시스템 ---
+                const openAuthModal = (mode) => {
+                    authMode.value = mode;
+                    authPassword.value = '';
+                    showAuthModal.value = true;
+                };
+
+                const closeAuthModal = () => {
+                    showAuthModal.value = false;
+                    authPassword.value = '';
+                };
+
+                const submitAuthPassword = () => {
+                    if (!currentPost.value) return;
+
+                    // 의뢰서 명시 사항: 암호화 없이 평문으로 저장·비교
+                    if (authPassword.value === currentPost.value.password) {
+                        showAuthModal.value = false;
+                        if (authMode.value === 'edit') {
+                            // 수정 화면 이동 및 양식 데이터 셋업
+                            postForm.value = {
+                                title: currentPost.value.title,
+                                content: currentPost.value.content,
+                                password: currentPost.value.password
+                            };
+                            currentView.value = 'post-edit';
+                        } else if (authMode.value === 'delete') {
+                            // 게시글 삭제
+                            posts.value = posts.value.filter(p => p.id !== currentPost.value.id);
+                            localStorage.setItem(LOCAL_POSTS_KEY, JSON.stringify(posts.value));
+                            currentPost.value = null;
+                            navigateTo('board');
+                        }
+                    } else {
+                        // 비밀번호 불일치 메시지 가상 경보 (alert 금지)
+                        alert("비밀번호가 올바르지 않습니다. 다시 입력해 주세요.");
+                    }
+                };
+
+                // --- ④ 챗봇 위젯 비즈니스 가상 로직 ---
+                const loadChatHistory = () => {
+                    const saved = localStorage.getItem(CHAT_HISTORY_KEY);
+                    if (saved) {
+                        chatHistory.value = JSON.parse(saved);
+                    }
+                };
+
+                const saveChatMessage = (sender, text) => {
+                    chatHistory.value.push({ sender, text });
+                    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(chatHistory.value));
+                    
+                    // 채팅 윈도우 스크롤바 맨 밑으로 동적 조정
+                    nextTick(() => {
+                        if (chatBox.value) {
+                            chatBox.value.scrollTop = chatBox.value.scrollHeight;
+                        }
+                    });
+                };
+
+                const clearChatHistory = () => {
+                    localStorage.removeItem(CHAT_HISTORY_KEY);
+                    chatHistory.value = [];
+                };
+
+                // 챗봇 입력 폼 송신 가공 (의뢰서 요구 질문 유형 최적 대응)
+                const sendChatMessage = () => {
+                    const query = chatInput.value.trim();
+                    if (!query) return;
+
+                    saveChatMessage('user', query);
+                    chatInput.value = '';
+
+                    // 가상 AI 응답 처리 지연 (FastAPI 챗봇 포트 연동 시나리오 모사)
+                    setTimeout(() => {
+                        let answer = "서울에 대해 원하시는 가이드 정보나 게시판의 익명 글을 조회하고 있습니다. 구체적인 키워드(관광지, 축제, 모범음식점 등)를 포함해 주시면 친절하게 안내해 드릴게요!";
+                        const q = query.toLowerCase();
+
+                        if (q.includes('관광') || q.includes('경복궁') || q.includes('타워') || q.includes('한옥')) {
+                            answer = "🏔️ <strong>추천해 드릴 서울 대표 관광지입니다:</strong><br>• <strong>경복궁 근정전:</strong> 조선 시대 전통의 정수를 담은 궁궐 (정동역 도보)<br>• <strong>N서울타워:</strong> 환상적인 도심 야경 전망대<br>• <strong>북촌한옥마을:</strong> 감성 가득한 한옥 골목길";
+                            activeCategory.value = 'tourist';
+                        } else if (q.includes('축제') || q.includes('행사') || q.includes('이벤트')) {
+                            answer = "🎉 <strong>서울 축제 및 행사 일정 안내:</strong><br>• 가을에 진행되는 <strong>'서울세계불꽃축제'</strong>가 여의도 한강공원에서 열릴 예정입니다. 대규모 인파 밀집이 예상되니 대중교통 이용을 필수 권장합니다.";
+                            activeCategory.value = 'festival';
+                        } else if (q.includes('게시') || q.includes('커뮤니티') || q.includes('검색') || q.includes('팁')) {
+                            answer = "💬 <strong>커뮤니티 인기 게시글 조회 결과:</strong><br>• <em>'서울 경복궁 야간개장 예매 꿀팁 공유'</em> (예매 오픈 시 모바일 대기 팁)<br>• <em>'남산 타워 순환 버스 정보'</em> 순환 01번 꿀팁이 주목받고 있습니다.";
+                            navigateTo('board');
+                        } else if (q.includes('숙소') || q.includes('호텔') || q.includes('숙박')) {
+                            answer = "🏨 <strong>안전하고 쾌적한 서울 숙소 제안:</strong><br>• <strong>그랜드 하얏트 서울:</strong> 남산뷰와 품격 있는 풀장 제공<br>• <strong>락고재 한옥스테이:</strong> 옛 정취와 온돌방 차 시음 서비스가 완비된 고요한 휴식터";
+                            activeCategory.value = 'stay';
+                        } else if (q.includes('음식') || q.includes('맛집') || q.includes('식사') || q.includes('순두부')) {
+                            answer = "🍽️ <strong>공공데이터 기반 모범음식점 위치 안내:</strong><br>• 마포역 부근 고기 거리의 모범 가맹점 및 광화문 초당순두부 퓨전 매장이 높은 평점(별점 4.8 이상)을 얻고 있습니다.";
+                        }
+
+                        saveChatMessage('bot', answer);
+                    }, 500);
+                };
+
+                // 마운트
+                onMounted(() => {
+                    initSession();
+                    loadPosts();
+                    loadChatHistory();
+                });
+
+                return {
+                    currentView,
+                    searchQuery,
+                    infoCategories,
+                    activeCategory,
+                    posts,
+                    currentPost,
+                    postForm,
+                    showAuthModal,
+                    authPassword,
+                    authMode,
+                    isChatOpen,
+                    chatInput,
+                    chatHistory,
+                    chatBox,
+                    sessionId,
+                    showSessionModal,
+
+                    // 메서드
+                    navigateTo,
+                    selectCategory,
+                    getActiveCategoryName,
+                    getActiveCategoryItems,
+                    viewPostDetail,
+                    triggerSearch,
+                    filteredPosts,
+                    cancelPostForm,
+                    submitPost,
+                    openAuthModal,
+                    closeAuthModal,
+                    submitAuthPassword,
+                    clearChatHistory,
+                    sendChatMessage,
+                    regenerateSession
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
