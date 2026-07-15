@@ -53,7 +53,7 @@
                 <!-- 선택된 권역 태그 표시 -->
                 <div class="flex items-center gap-2">
                     <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-full">
-                        📍 서울 권역 활성화
+                        📍 부산 권역 활성화
                     </span>
                 </div>
             </div>
@@ -71,9 +71,9 @@
                     <div class="absolute -right-10 -top-10 w-64 h-64 rounded-full bg-indigo-600/30 blur-3xl"></div>
                     <div class="relative z-10 max-w-2xl">
                         <span class="bg-indigo-500/30 text-indigo-200 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">권역 정보 서비스</span>
-                        <h1 class="text-3xl sm:text-4xl font-black mt-4 leading-tight">선정 권역: 서울(Seoul)의 지역 정보를 한눈에 만나보세요</h1>
+                        <h1 class="text-3xl sm:text-4xl font-black mt-4 leading-tight">선정 권역: 부산(Busan)의 지역 정보를 한눈에 만나보세요</h1>
                         <p class="mt-3 text-sm sm:text-base text-indigo-100/90 leading-relaxed">
-                            LocalHub는 서울의 공공데이터를 기반으로 한 신뢰할 수 있는 지역 정보 제공 플랫폼입니다. 관광지, 문화시설, 레포츠, 숙박 정보는 물론, 주민들과 자유롭게 소통하는 익명 게시판을 지금 이용해 보세요!
+                            LocalHub는 부산의 공공데이터를 기반으로 한 신뢰할 수 있는 지역 정보 제공 플랫폼입니다. 관광지, 문화시설, 레포츠, 숙박 정보는 물론, 주민들과 자유롭게 소통하는 익명 게시판을 지금 이용해 보세요!
                         </p>
                     </div>
                 </div>
@@ -103,8 +103,12 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div v-for="item in getActiveCategoryItems()" :key="item.id" class="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-sm transition-all flex flex-col justify-between">
                                 <div>
+                                    <div class="mb-4 h-40 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
+                                        <img v-if="item.image" :src="item.image" :alt="item.title" class="w-full h-full object-cover" loading="lazy" @error="$event.target.style.display='none'">
+                                        <span v-else class="text-xs text-gray-400">이미지 없음</span>
+                                    </div>
                                     <div class="flex items-center justify-between gap-2 mb-2">
-                                        <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">{{ item.subTag || '서울 명소' }}</span>
+                                        <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">{{ item.subTag || '부산 명소' }}</span>
                                         <span class="text-xs text-gray-400 font-semibold">{{ item.location || '서울 전체' }}</span>
                                     </div>
                                     <h3 class="font-bold text-base text-gray-900 line-clamp-1">{{ item.title }}</h3>
@@ -155,7 +159,7 @@
 
                 <!-- 검색창 -->
                 <div class="bg-white border border-gray-200 rounded-2xl p-4 flex gap-2">
-                    <input v-model="searchQuery" type="text" placeholder="검색어를 입력하세요 (제목, 내용)" class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input v-model="searchQuery" @keyup.enter.prevent="triggerSearch" type="text" placeholder="검색어를 입력하세요 (제목, 내용)" class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <button @click="triggerSearch" class="bg-gray-900 hover:bg-black text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors">
                         검색
                     </button>
@@ -198,7 +202,7 @@
                 <div class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
                     <div class="border-b border-gray-100 pb-5">
                         <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
-                            <span>No. {{ currentPost.id }} | 작성자: 익명</span>
+                            <span>No. {{ currentPost.id }} | 작성자: 익명 | 조회 {{ currentPost.views || 0 }}</span>
                             <span>작성시간: {{ currentPost.date }}</span>
                         </div>
                         <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900">{{ currentPost.title }}</h2>
@@ -272,7 +276,7 @@
                 <div class="bg-indigo-600 text-white px-4 py-3 flex items-center justify-between shadow-sm">
                     <div class="flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></span>
-                        <span class="font-bold text-xs tracking-wide">서울 관광 안내 AI 챗봇</span>
+                        <span class="font-bold text-xs tracking-wide">부산 관광 안내 AI 챗봇</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <!-- 대화 히스토리 리셋 -->
@@ -293,7 +297,7 @@
                     <div class="flex items-start gap-2">
                         <div class="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">🤖</div>
                         <div class="bg-white border border-gray-200 text-gray-800 rounded-2xl px-3 py-2 max-w-[85%] leading-relaxed shadow-sm">
-                            안녕하세요! 서울 권역의 관광지 추천, 축제 일정, 게시글 검색 등 원하시는 정보를 자유롭게 물어보세요. (대화 히스토리가 익명 식별 코드로 안전하게 유지됩니다.)
+                            안녕하세요! 부산 권역의 관광지 추천, 축제 일정, 게시글 검색 등 원하시는 정보를 자유롭게 물어보세요. (대화 히스토리가 익명 식별 코드로 안전하게 유지됩니다.)
                         </div>
                     </div>
 
@@ -313,7 +317,7 @@
 
                 <!-- 챗봇 푸터 입력창 -->
                 <form @submit.prevent="sendChatMessage" class="p-3 bg-white border-t border-gray-100 flex gap-2">
-                    <input v-model="chatInput" type="text" placeholder="궁금한 서울 정보를 물어보세요..." class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" required>
+                    <input v-model="chatInput" type="text" placeholder="궁금한 부산 정보를 물어보세요..." class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" required>
                     <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition-colors">
                         전송
                     </button>
@@ -369,9 +373,19 @@
             </div>
         </div>
 
+
+        <footer class="border-t border-gray-200 bg-white py-6 text-center mt-8">
+            <p class="text-xs text-gray-500">
+                이 서비스는 한국관광공사 Tour API(TourAPI 4.0)의 데이터를 활용하였습니다.
+            </p>
+            <p class="text-[11px] text-gray-400 mt-1">
+                출처: 한국관광공사 · 라이선스: 공공누리 제3유형
+            </p>
+        </footer>
     </div>
 
     <!-- Vue.js 애플리케이션 정의 -->
+
     <script>
         const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
@@ -392,7 +406,20 @@
                     { id: 'course', name: '여행코스', emoji: '🗺️' },
                     { id: 'festival', name: '축제공연', emoji: '🎉' }
                 ];
+
+                const categoryMap = {
+                    tourist: '관광지',
+                    culture: '문화시설',
+                    sports: '레포츠',
+                    shopping: '쇼핑',
+                    stay: '숙박',
+                    course: '여행코스',
+                    festival: '축제공연행사'
+                };
+
                 const activeCategory = ref('tourist');
+                const locationItems = ref([]);
+                const locationsLoading = ref(false);
 
                 const sessionId = ref('');
                 const showSessionModal = ref(false);
@@ -401,13 +428,7 @@
 
                 const posts = ref([]);
                 const currentPost = ref(null);
-                const loadingPosts = ref(false);
-
-                const postForm = ref({
-                    title: '',
-                    content: '',
-                    password: ''
-                });
+                const postForm = ref({ title: '', content: '', password: '' });
 
                 const showAuthModal = ref(false);
                 const authMode = ref('');
@@ -418,60 +439,23 @@
                 const chatHistory = ref([]);
                 const chatBox = ref(null);
 
-                const touristItems = [
-                    { id: 1, title: '경복궁 근정전', subTag: '궁궐/역사', location: '서울 종로구', desc: '조선 왕조의 정궁이자 한국 전통 건축의 가치를 간직한 대표 관광지입니다.', rating: '4.9' },
-                    { id: 2, title: 'N서울타워 전망대', subTag: '랜드마크', location: '서울 용산구', desc: '서울 도심의 전경과 야경을 한눈에 볼 수 있는 대표 전망 명소입니다.', rating: '4.8' },
-                    { id: 3, title: '북촌한옥마을', subTag: '도보 산책', location: '서울 종로구', desc: '전통 한옥과 골목 풍경을 경험할 수 있는 서울의 대표 산책 명소입니다.', rating: '4.7' }
-                ];
-                const cultureItems = [
-                    { id: 1, title: '세종문화회관', subTag: '문화공연', location: '서울 종로구', desc: '공연장과 전시관을 갖춘 서울의 대표 복합문화공간입니다.', rating: '4.8' },
-                    { id: 2, title: '동대문디자인플라자 (DDP)', subTag: '현대건축', location: '서울 중구', desc: '전시, 패션, 디자인 행사가 열리는 복합문화공간입니다.', rating: '4.9' }
-                ];
-                const sportsItems = [
-                    { id: 1, title: '뚝섬 한강공원 윈드서핑장', subTag: '수상 레포츠', location: '서울 광진구', desc: '한강에서 다양한 수상 레포츠를 체험할 수 있습니다.', rating: '4.6', price: '체험 5만원' },
-                    { id: 2, title: '아차산 등산 코스', subTag: '산악 레포츠', location: '서울 광진구', desc: '초보자도 비교적 편하게 즐길 수 있는 도심 등산 코스입니다.', rating: '4.5' }
-                ];
-                const shoppingItems = [
-                    { id: 1, title: '인사동 쌈지길', subTag: '쇼핑/공예', location: '서울 종로구', desc: '전통 공예품과 개성 있는 상점을 만날 수 있는 복합문화공간입니다.', rating: '4.7' },
-                    { id: 2, title: '명동 쇼핑거리', subTag: '쇼핑몰', location: '서울 중구', desc: '패션과 뷰티 브랜드가 밀집한 서울의 대표 쇼핑 지역입니다.', rating: '4.6' }
-                ];
-                const stayItems = [
-                    { id: 1, title: '그랜드 하얏트 서울', subTag: '숙박', location: '서울 용산구', desc: '남산과 한강 전망을 즐길 수 있는 도심 호텔입니다.', rating: '4.9', price: '1박 30만원대~' },
-                    { id: 2, title: '종로 한옥스테이', subTag: '한옥숙박', location: '서울 종로구', desc: '서울 도심에서 전통 한옥 숙박을 경험할 수 있습니다.', rating: '4.8', price: '1박 20만원대~' }
-                ];
-                const courseItems = [
-                    { id: 1, title: '한양도성 낙산 코스', subTag: '여행코스', location: '서울 혜화역', desc: '성곽길을 따라 도심 풍경과 야경을 즐길 수 있는 산책 코스입니다.', rating: '4.7' }
-                ];
-                const festivalItems = [
-                    { id: 1, title: '서울세계불꽃축제', subTag: '축제/행사', location: '서울 여의도 한강공원', desc: '한강을 배경으로 대규모 불꽃 공연이 펼쳐지는 서울 대표 축제입니다.', rating: '4.9' }
-                ];
+                const request = async (url, options = {}) => {
+                    const response = await fetch(url, options);
+                    let data = {};
+                    try {
+                        data = await response.json();
+                    } catch (_) {}
 
-                const formatDate = (value) => {
-                    if (!value) return '';
-                    return String(value).slice(0, 10);
+                    if (!response.ok) {
+                        throw new Error(data.detail || '요청 처리 중 오류가 발생했습니다.');
+                    }
+                    return data;
                 };
 
                 const normalizePost = (post) => ({
-                    id: post.id,
-                    title: post.title,
-                    content: post.content,
-                    date: formatDate(post.created_at),
-                    view_count: post.view_count ?? 0
+                    ...post,
+                    date: post.created_at ? post.created_at.slice(0, 10) : ''
                 });
-
-                const requestJson = async (url, options = {}) => {
-                    const response = await fetch(url, options);
-                    let body = null;
-                    try {
-                        body = await response.json();
-                    } catch (_) {
-                        body = null;
-                    }
-                    if (!response.ok) {
-                        throw new Error(body?.detail || '요청 처리 중 오류가 발생했습니다.');
-                    }
-                    return body;
-                };
 
                 const navigateTo = (viewName) => {
                     currentView.value = viewName;
@@ -479,10 +463,7 @@
                         searchQuery.value = '';
                         activeSearch.value = '';
                     }
-                };
-
-                const selectCategory = (catId) => {
-                    activeCategory.value = catId;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
 
                 const getActiveCategoryName = () => {
@@ -490,17 +471,37 @@
                     return cat ? cat.name : '관광지';
                 };
 
-                const getActiveCategoryItems = () => {
-                    const data = {
-                        tourist: touristItems,
-                        culture: cultureItems,
-                        sports: sportsItems,
-                        shopping: shoppingItems,
-                        stay: stayItems,
-                        course: courseItems,
-                        festival: festivalItems
-                    };
-                    return data[activeCategory.value] || touristItems;
+                const getActiveCategoryItems = () => locationItems.value;
+
+                const loadLocations = async () => {
+                    locationsLoading.value = true;
+                    try {
+                        const category = categoryMap[activeCategory.value];
+                        const data = await request(
+                            `${API_BASE_URL}/api/locations?category=${encodeURIComponent(category)}&limit=30`
+                        );
+                        locationItems.value = data.map(item => ({
+                            id: item.id,
+                            title: item.title,
+                            subTag: item.category,
+                            location: item.address || '주소 정보 없음',
+                            desc: item.address_detail || item.telephone || '한국관광공사 TourAPI 제공 데이터',
+                            image: item.image_url || item.thumbnail_url,
+                            longitude: item.longitude,
+                            latitude: item.latitude
+                        }));
+                    } catch (error) {
+                        console.error(error);
+                        locationItems.value = [];
+                        alert('지역 정보를 불러오지 못했습니다. FastAPI 서버가 실행 중인지 확인해 주세요.');
+                    } finally {
+                        locationsLoading.value = false;
+                    }
+                };
+
+                const selectCategory = async (catId) => {
+                    activeCategory.value = catId;
+                    await loadLocations();
                 };
 
                 const initSession = () => {
@@ -517,38 +518,36 @@
                     initSession();
                 };
 
-                const loadPosts = async () => {
-                    loadingPosts.value = true;
+                const loadPosts = async (keywordOverride = null) => {
                     try {
-                        const keyword = activeSearch.value.trim();
+                        const keyword = typeof keywordOverride === 'string'
+                            ? keywordOverride.trim()
+                            : activeSearch.value.trim();
+                        activeSearch.value = keyword;
+
                         const url = keyword
                             ? `${API_BASE_URL}/api/posts?keyword=${encodeURIComponent(keyword)}`
                             : `${API_BASE_URL}/api/posts`;
-                        const data = await requestJson(url);
+                        const data = await request(url);
                         posts.value = data.map(normalizePost);
                     } catch (error) {
                         console.error(error);
-                        alert(error.message);
-                    } finally {
-                        loadingPosts.value = false;
+                        alert('게시글을 불러오지 못했습니다.');
                     }
                 };
 
                 const viewPostDetail = async (id) => {
                     try {
-                        const post = await requestJson(`${API_BASE_URL}/api/posts/${id}`);
-                        currentPost.value = normalizePost(post);
+                        const data = await request(`${API_BASE_URL}/api/posts/${id}`);
+                        currentPost.value = normalizePost(data);
                         currentView.value = 'post-detail';
-                        await loadPosts();
                     } catch (error) {
-                        console.error(error);
                         alert(error.message);
                     }
                 };
 
                 const triggerSearch = async () => {
-                    activeSearch.value = searchQuery.value;
-                    await loadPosts();
+                    await loadPosts(searchQuery.value);
                 };
 
                 const filteredPosts = computed(() => posts.value);
@@ -559,38 +558,28 @@
                 };
 
                 const submitPost = async () => {
-                    const payload = {
-                        title: postForm.value.title.trim(),
-                        content: postForm.value.content.trim(),
-                        password: postForm.value.password
-                    };
-
                     try {
                         if (currentView.value === 'post-create') {
-                            await requestJson(`${API_BASE_URL}/api/posts`, {
+                            await request(`${API_BASE_URL}/api/posts`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payload)
+                                body: JSON.stringify(postForm.value)
                             });
                             postForm.value = { title: '', content: '', password: '' };
                             await loadPosts();
-                            currentView.value = 'board';
+                            navigateTo('board');
                             return;
                         }
 
-                        if (currentView.value === 'post-edit' && currentPost.value) {
-                            const updated = await requestJson(`${API_BASE_URL}/api/posts/${currentPost.value.id}`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payload)
-                            });
-                            currentPost.value = normalizePost(updated);
-                            postForm.value = { title: '', content: '', password: '' };
-                            await loadPosts();
-                            currentView.value = 'post-detail';
-                        }
+                        const data = await request(`${API_BASE_URL}/api/posts/${currentPost.value.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(postForm.value)
+                        });
+                        currentPost.value = normalizePost(data);
+                        await loadPosts();
+                        currentView.value = 'post-detail';
                     } catch (error) {
-                        console.error(error);
                         alert(error.message);
                     }
                 };
@@ -606,21 +595,17 @@
                     authPassword.value = '';
                 };
 
-                const deletePost = async (password) => {
-                    await requestJson(`${API_BASE_URL}/api/posts/${currentPost.value.id}`, {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ password })
-                    });
-                    currentPost.value = null;
-                    await loadPosts();
-                    currentView.value = 'board';
-                };
-
                 const submitAuthPassword = async () => {
                     if (!currentPost.value) return;
+
                     try {
                         if (authMode.value === 'edit') {
+                            await request(`${API_BASE_URL}/api/posts/${currentPost.value.id}/verify`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ password: authPassword.value })
+                            });
+
                             postForm.value = {
                                 title: currentPost.value.title,
                                 content: currentPost.value.content,
@@ -628,13 +613,18 @@
                             };
                             showAuthModal.value = false;
                             currentView.value = 'post-edit';
-                        } else if (authMode.value === 'delete') {
-                            await deletePost(authPassword.value);
-                            showAuthModal.value = false;
+                            return;
                         }
-                        authPassword.value = '';
+
+                        await request(
+                            `${API_BASE_URL}/api/posts/${currentPost.value.id}?password=${encodeURIComponent(authPassword.value)}`,
+                            { method: 'DELETE' }
+                        );
+                        closeAuthModal();
+                        currentPost.value = null;
+                        await loadPosts();
+                        navigateTo('board');
                     } catch (error) {
-                        console.error(error);
                         alert(error.message);
                     }
                 };
@@ -660,61 +650,42 @@
                 const sendChatMessage = async () => {
                     const query = chatInput.value.trim();
                     if (!query) return;
+
                     saveChatMessage('user', query);
                     chatInput.value = '';
 
                     try {
-                        const result = await requestJson(`${API_BASE_URL}/api/chat`, {
+                        const data = await request(`${API_BASE_URL}/api/chat`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ message: query })
+                            body: JSON.stringify({
+                                message: query,
+                                session_id: sessionId.value
+                            })
                         });
-                        saveChatMessage('bot', result.answer);
+                        saveChatMessage('bot', data.answer);
                     } catch (error) {
-                        console.error(error);
-                        saveChatMessage('bot', `⚠️ ${error.message}`);
+                        saveChatMessage('bot', `오류: ${error.message}`);
                     }
                 };
 
                 onMounted(async () => {
                     initSession();
                     loadChatHistory();
-                    await loadPosts();
+                    await Promise.all([loadPosts(), loadLocations()]);
                 });
 
                 return {
-                    currentView,
-                    searchQuery,
-                    infoCategories,
-                    activeCategory,
-                    posts,
-                    currentPost,
-                    postForm,
-                    showAuthModal,
-                    authPassword,
-                    authMode,
-                    isChatOpen,
-                    chatInput,
-                    chatHistory,
-                    chatBox,
-                    sessionId,
-                    showSessionModal,
-                    loadingPosts,
-                    navigateTo,
-                    selectCategory,
-                    getActiveCategoryName,
-                    getActiveCategoryItems,
-                    viewPostDetail,
-                    triggerSearch,
-                    filteredPosts,
-                    cancelPostForm,
-                    submitPost,
-                    openAuthModal,
-                    closeAuthModal,
-                    submitAuthPassword,
-                    clearChatHistory,
-                    sendChatMessage,
-                    regenerateSession
+                    currentView, searchQuery, infoCategories, activeCategory,
+                    posts, currentPost, postForm,
+                    showAuthModal, authPassword, authMode,
+                    isChatOpen, chatInput, chatHistory, chatBox,
+                    sessionId, showSessionModal, locationsLoading,
+                    navigateTo, selectCategory, getActiveCategoryName,
+                    getActiveCategoryItems, viewPostDetail, triggerSearch,
+                    filteredPosts, cancelPostForm, submitPost,
+                    openAuthModal, closeAuthModal, submitAuthPassword,
+                    clearChatHistory, sendChatMessage, regenerateSession
                 };
             }
         }).mount('#app');
