@@ -158,81 +158,72 @@
             <div v-if="currentView === 'home'" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
                 <!-- [좌측 윙: 고정 컨트롤 덱 (4칸)] -->
-                <aside class="lg:col-span-4 lg:sticky lg:top-28 space-y-6">
-                    
-                    <!-- 감성 날씨 카드 (서랍 인터랙션 적용) -->
-                    <div class="bg-white border-2 border-stone-100 rounded-[2.5rem] p-6 shadow-sm overflow-hidden space-y-5">
-                        <div class="flex items-center justify-between">
-                            <h3 class="font-black text-slate-800 tracking-tight flex items-center gap-1.5">
-                                🌤️ {{ t('weather_title') }}
-                            </h3>
-                            <button @click="loadWeather" :disabled="weatherLoading" class="p-2 hover:bg-stone-50 rounded-xl transition-all">
-                                <svg class="w-4 h-4 text-indigo-600" :class="{'animate-spin': weatherLoading}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.253 8H18"></path>
-                                </svg>
-                            </button>
-                        </div>
+<aside class="lg:col-span-4 lg:sticky lg:top-28 space-y-6">
+    <!-- 감성 날씨 카드 -->
+    <div class="bg-white border-2 border-stone-100 rounded-[2.5rem] p-6 shadow-sm overflow-hidden space-y-5">
+        <div class="flex items-center justify-between gap-2">
+            <h3 class="font-black text-slate-800 tracking-tight flex items-center gap-1.5 truncate">
+                🌤️ {{ t('weather_title') }}
+            </h3>
+            <!-- 애니메이션 제거 및 크기 축소 -->
+        </div>
 
-                        <!-- 실시간 핵심 온도 비주얼 -->
-                        <div v-if="currentWeather" class="bg-gradient-to-br from-indigo-550 via-indigo-600 to-violet-700 text-white rounded-3xl p-5 relative overflow-hidden">
-                            <div class="relative z-10 flex items-center justify-between">
-                                <div class="space-y-1">
-                                    <span class="text-[10px] font-black tracking-widest text-sky-100/80 uppercase">{{ t('weather_current') }}</span>
-                                    <p class="text-2xl font-black">부산광역시</p>
-                                    <p class="text-[10px] text-sky-100/70 font-semibold">{{ formatWeatherTime(currentWeather.time) }}</p>
-                                </div>
-                                <span class="text-5xl filter drop-shadow-md animate-pulse">
-                                    {{ getWeatherIcon(currentWeather.weather_code, currentWeather.is_day) }}
-                                </span>
-                            </div>
+        <!-- 실시간 핵심 온도 비주얼 -->
+        <div v-if="currentWeather" class="bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 text-white rounded-3xl p-5 relative overflow-hidden">
+            <div class="relative z-10 flex items-center justify-between">
+                <div class="space-y-1">
+                    <span class="text-[10px] font-black tracking-widest text-sky-100/80 uppercase">{{ t('weather_current') }}</span>
+                    <p class="text-2xl font-black">부산광역시</p>
+                    <p class="text-[10px] text-sky-100/70 font-semibold">{{ formatWeatherTime(currentWeather.time) }}</p>
+                </div>
+                <span class="text-5xl filter drop-shadow-md animate-pulse">
+                    {{ getWeatherIcon(currentWeather.weather_code, currentWeather.is_day) }}
+                </span>
+            </div>
 
-                            <div class="relative z-10 mt-6 flex items-baseline gap-2">
-                                <span class="text-5xl font-black tracking-tighter">{{ Math.round(currentWeather.temperature_2m) }}°</span>
-                                <span class="text-[11px] font-bold bg-white/20 px-2 py-0.5 rounded-full">{{ getWeatherLabel(currentWeather.weather_code) }}</span>
-                            </div>
-                        </div>
+            <div class="relative z-10 mt-6 flex items-baseline gap-2">
+                <span class="text-5xl font-black tracking-tighter">{{ Math.round(currentWeather.temperature_2m) }}°</span>
+                <span class="text-[11px] font-bold bg-white/20 px-2 py-0.5 rounded-full">{{ getWeatherLabel(currentWeather.weather_code) }}</span>
+            </div>
+        </div>
 
-                        <!-- 주간 날씨 접이식 아코디언 버튼 (인터랙션 경험의 변화) -->
-                        <div v-if="weeklyWeather.length" class="space-y-3">
-                            <button @click="showSessionModal = !showSessionModal" class="w-full bg-violet-50 text-violet-700 text-xs font-black py-3 rounded-2xl flex items-center justify-center gap-1 hover:bg-violet-100 transition-all">
-                                🔐 {{ t('session_title') }} 확인
-                            </button>
-
-                            <!-- 아코디언 서랍 형태의 주간날씨 슬라이더 -->
-                            <details class="group bg-stone-50 rounded-2xl overflow-hidden border border-stone-100">
-                                <summary class="flex items-center justify-between px-5 py-4 cursor-pointer text-xs font-black text-slate-700 outline-none select-none">
-                                    <span>🗓️ {{ t('weather_weekly') }} 서랍 열어보기</span>
-                                    <span class="transition-transform group-open:rotate-180 text-indigo-500 font-bold">&darr;</span>
-                                </summary>
-                                <div class="px-3 pb-4 pt-1 divide-y divide-stone-100/80 max-h-[220px] overflow-y-auto">
-                                    <div v-for="(day, index) in weeklyWeather" :key="day.date" class="flex items-center justify-between py-2 text-xs font-semibold">
-                                        <span class="w-12" :class="index === 0 ? 'text-indigo-600 font-black' : 'text-slate-600'">{{ formatWeatherDay(day.date, index) }}</span>
-                                        <span class="text-xl shrink-0">{{ getWeatherIcon(day.weather_code, 1) }}</span>
-                                        <span class="text-[10px] text-slate-400 w-16 text-center line-clamp-1">{{ getWeatherLabel(day.weather_code) }}</span>
-                                        <span class="text-slate-700 font-black text-right w-14">
-                                            <span class="text-rose-500">{{ Math.round(day.max_temperature) }}°</span>
-                                            <span class="text-slate-300">/</span>
-                                            <span class="text-blue-500">{{ Math.round(day.min_temperature) }}°</span>
-                                        </span>
-                                    </div>
-                                </div>
-                            </details>
-                        </div>
+        <!-- 주간 날씨 접이식 아코디언 버튼 -->
+        <div v-if="weeklyWeather && weeklyWeather.length" class="space-y-3">
+            <details class="group bg-stone-50 rounded-2xl overflow-hidden border border-stone-100 transition-all duration-300">
+                <summary class="flex items-center justify-between px-5 py-4 cursor-pointer text-xs font-black text-slate-700 outline-none select-none">
+                    <span>🗓️ {{ t('weather_weekly') }} 서랍 열어보기</span>
+                    <span class="transition-transform duration-300 group-open:rotate-180 text-indigo-500 font-bold">&darr;</span>
+                </summary>
+                <div class="px-3 pb-4 pt-1 divide-y divide-stone-100/80 max-h-[220px] overflow-y-auto">
+                    <div v-for="(day, index) in weeklyWeather" :key="day.date" class="flex items-center justify-between py-2 text-xs font-semibold">
+                        <span class="w-12" :class="index === 0 ? 'text-indigo-600 font-black' : 'text-slate-600'">{{ formatWeatherDay(day.date, index) }}</span>
+                        <span class="text-xl shrink-0">{{ getWeatherIcon(day.weather_code, 1) }}</span>
+                        <span class="text-[10px] text-slate-400 w-16 text-center line-clamp-1">{{ getWeatherLabel(day.weather_code) }}</span>
+                        <span class="text-slate-700 font-black text-right w-14">
+                            <span class="text-rose-500">{{ Math.round(day.max_temperature) }}°</span>
+                            <span class="text-slate-300">/</span>
+                            <span class="text-blue-500">{{ Math.round(day.min_temperature) }}°</span>
+                        </span>
                     </div>
+                </div>
+            </details>
+        </div>
+    </div>
 
                     <!-- 버블형 구름 카테고리 컨트롤 데크 -->
                     <div class="bg-white border-2 border-stone-100 rounded-[2.5rem] p-6 shadow-sm space-y-4">
                         <h3 class="text-xs font-black text-slate-400 tracking-wider uppercase">EXPLORE FILTER</h3>
                         <div class="flex flex-wrap gap-2.5">
                             <button v-for="cat in infoCategories" :key="cat.id" @click="selectCategory(cat.id)"
-                                class="flex items-center gap-1.5 px-4.5 py-2.5 rounded-full text-xs font-black transition-all border-2"
+                                class="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-black transition-all border-2"
                                 :class="activeCategory === cat.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100 scale-105' : 'bg-stone-50 border-stone-100 text-slate-600 hover:bg-stone-100/80 hover:-translate-y-0.5'">
                                 <span class="text-base">{{ cat.emoji }}</span>
                                 <span>{{ getCategoryName(cat.id) }}</span>
                             </button>
                         </div>
                     </div>
-                </aside>
+
+</aside>
 
                 <!-- [우측 윙: 라이브 액티비티 캔버스 (8칸)] -->
                 <div class="lg:col-span-8 space-y-8">
