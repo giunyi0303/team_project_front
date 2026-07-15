@@ -4,7 +4,10 @@ import re
 from pathlib import Path
 from typing import Optional
 from urllib import error, request
+import logging
+import traceback
 
+from dotenv import load_dotenv
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, or_
@@ -14,6 +17,15 @@ import models
 import schemas
 from database import Base, SessionLocal, engine
 from import_data import import_json_data
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
+
+# 로거 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+)
+logger = logging.getLogger("localhub")
 
 Base.metadata.create_all(bind=engine)
 
@@ -41,7 +53,10 @@ def startup_event():
     finally:
         db.close()
 
+    logger.info("startup: locations_count=%s", count)
+
     if count == 0:
+        logger.info("startup: DB empty, importing bundled JSON data")
         import_json_data()
 
 
@@ -292,12 +307,11 @@ def get_openai_chat_reply(message: str, db: Session) -> Optional[str]:
         )
 
     payload = {
-        "model": "gpt-4o-mini",
+        "model": "gpt-5-mini",
         "messages": [
             {"role": "system", "content": prompt},
             {"role": "user", "content": message},
         ],
-        "temperature": 0.7,
     }
 
     data = json.dumps(payload).encode("utf-8")
@@ -313,20 +327,32 @@ def get_openai_chat_reply(message: str, db: Session) -> Optional[str]:
 
     try:
         with request.urlopen(req, timeout=20) as response:
-            result = json.loads(response.read().decode("utf-8"))
+            raw = response.read().decode("utf-8")
+            result = json.loads(raw)
             content = result["choices"][0]["message"]["content"].strip()
+            logger.info("OpenAI reply received (len=%d)", len(content) if content else 0)
             return content or None
-    except (error.HTTPError, error.URLError, KeyError, IndexError, TimeoutError, ValueError):
+    except (error.HTTPError, error.URLError, KeyError, IndexError, TimeoutError, ValueError) as exc:
+        logger.exception("[chat] OpenAI request failed: %s", exc)
+        if isinstance(exc, error.HTTPError):
+            try:
+                body = exc.read().decode("utf-8")
+                logger.error("[chat] OpenAI HTTPError body: %s", body)
+            except Exception:
+                logger.exception("[chat] Failed reading HTTPError body")
         return None
 
 
 @app.post("/api/chat")
 def chat(payload: dict, db: Session = Depends(get_db)):
+    logger.info("/api/chat called payload=%s", payload)
     message = str(payload.get("message", "")).strip()
     if not message:
         raise HTTPException(status_code=400, detail="질문을 입력해 주세요.")
 
     openai_reply = get_openai_chat_reply(message, db)
+    logger.info("[chat] message=%s", message)
+    logger.info("[chat] openai_reply=%s", openai_reply)
     if openai_reply:
         return {"answer": openai_reply}
 
