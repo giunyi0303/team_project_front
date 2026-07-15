@@ -46,14 +46,18 @@
 
                 <!-- 네비게이션 링크 -->
                 <nav class="hidden sm:flex items-center space-x-6 text-sm font-semibold text-gray-600">
-                    <button @click="navigateTo('home')" :class="currentView === 'home' ? 'text-indigo-600' : 'hover:text-indigo-600'">홈</button>
-                    <button @click="navigateTo('board')" :class="currentView === 'board' || currentView === 'post-detail' ? 'text-indigo-600' : 'hover:text-indigo-600'">커뮤니티 게시판</button>
+                    <button @click="navigateTo('home')" :class="currentView === 'home' ? 'text-indigo-600' : 'hover:text-indigo-600'">{{ t('nav_home') }}</button>
+                    <button @click="navigateTo('board')" :class="currentView === 'board' || currentView === 'post-detail' ? 'text-indigo-600' : 'hover:text-indigo-600'">{{ t('nav_board') }}</button>
                 </nav>
 
-                <!-- 선택된 권역 태그 표시 -->
+                <!-- 언어 전환 버튼 -->
                 <div class="flex items-center gap-2">
+                    <div class="flex rounded-full border border-gray-200 bg-gray-100 p-1">
+                        <button @click="setLanguage('ko')" :class="language === 'ko' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500'" class="px-3 py-1 rounded-full text-xs font-semibold transition-colors">한국어</button>
+                        <button @click="setLanguage('en')" :class="language === 'en' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500'" class="px-3 py-1 rounded-full text-xs font-semibold transition-colors">English</button>
+                    </div>
                     <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-full">
-                        📍 부산 권역 활성화
+                        {{ t('region_badge') }}
                     </span>
                 </div>
             </div>
@@ -70,21 +74,21 @@
                 <div class="relative bg-gradient-to-r from-indigo-900 to-indigo-700 rounded-3xl p-8 sm:p-12 text-white overflow-hidden shadow-xl">
                     <div class="absolute -right-10 -top-10 w-64 h-64 rounded-full bg-indigo-600/30 blur-3xl"></div>
                     <div class="relative z-10 max-w-2xl">
-                        <span class="bg-indigo-500/30 text-indigo-200 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">권역 정보 서비스</span>
-                        <h1 class="text-3xl sm:text-4xl font-black mt-4 leading-tight">선정 권역: 부산(Busan)의 지역 정보를 한눈에 만나보세요</h1>
+                        <span class="bg-indigo-500/30 text-indigo-200 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{{ t('hero_badge') }}</span>
+                        <h1 class="text-3xl sm:text-4xl font-black mt-4 leading-tight">{{ t('hero_title') }}</h1>
                         <p class="mt-3 text-sm sm:text-base text-indigo-100/90 leading-relaxed">
-                            LocalHub는 부산의 공공데이터를 기반으로 한 신뢰할 수 있는 지역 정보 제공 플랫폼입니다. 관광지, 문화시설, 레포츠, 숙박 정보는 물론, 주민들과 자유롭게 소통하는 익명 게시판을 지금 이용해 보세요!
+                            {{ t('hero_desc') }}
                         </p>
                     </div>
                 </div>
 
                 <!-- 카테고리 바로가기 퀵 메뉴 -->
                 <div>
-                    <h2 class="text-lg font-bold text-gray-900 mb-4">카테고리 정보 바로가기</h2>
+                    <h2 class="text-lg font-bold text-gray-900 mb-4">{{ t('quick_menu_title') }}</h2>
                     <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
                         <div v-for="cat in infoCategories" :key="cat.id" @click="selectCategory(cat.id)" class="bg-white border border-gray-200 rounded-2xl p-4 text-center hover:shadow-md hover:border-indigo-500 transition-all cursor-pointer group">
                             <span class="text-2xl block mb-2">{{ cat.emoji }}</span>
-                            <span class="text-xs font-bold text-gray-700 group-hover:text-indigo-600">{{ cat.name }}</span>
+                            <span class="text-xs font-bold text-gray-700 group-hover:text-indigo-600">{{ getCategoryName(cat.id) }}</span>
                         </div>
                     </div>
                 </div>
@@ -95,8 +99,8 @@
                     <!-- 왼쪽 2단: 카테고리 데이터 조회 공간 -->
                     <div class="lg:col-span-2 space-y-6">
                         <div class="flex items-center justify-between">
-                            <h2 class="text-xl font-bold text-gray-900">🏛️ {{ getActiveCategoryName() }} 공공 데이터 목록</h2>
-                            <span class="text-xs text-gray-500">제공 데이터 개수: {{ getActiveCategoryItems().length }}개</span>
+                            <h2 class="text-xl font-bold text-gray-900">🏛️ {{ getActiveCategoryName() }} {{ t('public_data_title') }}</h2>
+                            <span class="text-xs text-gray-500">{{ t('public_data_count', { count: getActiveCategoryItems().length }) }}</span>
                         </div>
 
                         <!-- 카테고리 데이터 카드 리스트 (스크롤 최적화) -->
@@ -105,17 +109,17 @@
                                 <div>
                                     <div class="mb-4 h-40 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
                                         <img v-if="item.image" :src="item.image" :alt="item.title" class="w-full h-full object-cover" loading="lazy" @error="$event.target.style.display='none'">
-                                        <span v-else class="text-xs text-gray-400">이미지 없음</span>
+                                        <span v-else class="text-xs text-gray-400">{{ t('image_none') }}</span>
                                     </div>
                                     <div class="flex items-center justify-between gap-2 mb-2">
-                                        <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">{{ item.subTag || '부산 명소' }}</span>
-                                        <span class="text-xs text-gray-400 font-semibold">{{ item.location || '서울 전체' }}</span>
+                                        <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">{{ item.subTag || t('default_subtag') }}</span>
+                                        <span class="text-xs text-gray-400 font-semibold">{{ item.location || t('default_location') }}</span>
                                     </div>
                                     <h3 class="font-bold text-base text-gray-900 line-clamp-1">{{ item.title }}</h3>
                                     <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ item.desc }}</p>
                                 </div>
                                 <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400 font-medium">
-                                    <span>별점: ⭐ {{ item.rating || '4.5' }}</span>
+                                    <span>{{ t('rating_label', { rating: item.rating || '4.5' }) }}</span>
                                     <span class="text-indigo-600 font-bold" v-if="item.price">{{ item.price }}</span>
                                 </div>
                             </div>
@@ -125,16 +129,20 @@
                     <!-- 오른쪽 1단: 최근 익명 게시글 목록 -->
                     <div class="space-y-6">
                         <div class="flex items-center justify-between">
-                            <h2 class="text-xl font-bold text-gray-900">💬 최근 익명 게시글</h2>
-                            <button @click="navigateTo('board')" class="text-xs text-indigo-600 font-bold hover:underline">전체보기</button>
+                            <h2 class="text-xl font-bold text-gray-900">💬 {{ t('recent_posts_title') }}</h2>
+                            <button @click="navigateTo('board')" class="text-xs text-indigo-600 font-bold hover:underline">{{ t('view_all') }}</button>
                         </div>
 
                         <div class="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
-                            <div v-if="posts.length === 0" class="text-center py-8 text-xs text-gray-400">등록된 게시글이 없습니다.</div>
+                            <div v-if="posts.length === 0" class="text-center py-8 text-xs text-gray-400">{{ t('no_posts') }}</div>
                             <div v-for="post in posts.slice(0, 5)" :key="post.id" @click="viewPostDetail(post.id)" class="p-3 bg-gray-50 hover:bg-indigo-50/50 rounded-xl transition-all cursor-pointer border border-transparent hover:border-indigo-100">
                                 <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
                                     <span class="font-bold text-indigo-500">No. {{ post.id }}</span>
                                     <span>{{ post.date }}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                                    <span>{{ t('views_label', { count: post.views || 0 }) }}</span>
+                                    <span>{{ t('anonymous') }}</span>
                                 </div>
                                 <h3 class="font-semibold text-sm text-gray-800 line-clamp-1">{{ post.title }}</h3>
                                 <p class="text-xs text-gray-500 line-clamp-1 mt-0.5">{{ post.content }}</p>
@@ -149,19 +157,19 @@
                 <!-- 상단 필터 및 검색 바 -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h2 class="text-2xl font-black text-gray-900">지역 커뮤니티 게시판</h2>
-                        <p class="text-xs text-gray-500 mt-1">로그인 없는 자유로운 익명 소통 공간입니다. (수정/삭제 시 비밀번호 필요)</p>
+                        <h2 class="text-2xl font-black text-gray-900">{{ t('board_title') }}</h2>
+                        <p class="text-xs text-gray-500 mt-1">{{ t('board_desc') }}</p>
                     </div>
                     <button @click="navigateTo('post-create')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors flex items-center gap-1.5 self-stretch sm:self-auto justify-center">
-                        <span>+ 새 글 작성</span>
+                        <span>{{ t('create_post') }}</span>
                     </button>
                 </div>
 
                 <!-- 검색창 -->
                 <div class="bg-white border border-gray-200 rounded-2xl p-4 flex gap-2">
-                    <input v-model="searchQuery" @keyup.enter.prevent="triggerSearch" type="text" placeholder="검색어를 입력하세요 (제목, 내용)" class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input v-model="searchQuery" @keyup.enter.prevent="triggerSearch" type="text" :placeholder="t('search_placeholder')" class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <button @click="triggerSearch" class="bg-gray-900 hover:bg-black text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors">
-                        검색
+                        {{ t('search_button') }}
                     </button>
                 </div>
 
@@ -170,21 +178,26 @@
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                                <th class="py-3 px-6 w-20">번호</th>
-                                <th class="py-3 px-6">제목</th>
-                                <th class="py-3 px-6 w-32 text-center">작성자</th>
-                                <th class="py-3 px-6 w-32 text-right">작성일</th>
+                                <th class="py-3 px-6 w-20">{{ t('table_no') }}</th>
+                                <th class="py-3 px-6">{{ t('table_title') }}</th>
+                                <th class="py-3 px-6 w-32 text-center">{{ t('table_author') }}</th>
+                                <th class="py-3 px-6 w-32 text-right">{{ t('table_date') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-xs">
                             <tr v-if="filteredPosts.length === 0">
-                                <td colspan="4" class="py-8 text-center text-gray-400">검색 조건에 맞는 게시글이 없습니다.</td>
+                                <td colspan="4" class="py-8 text-center text-gray-400">{{ t('empty_results') }}</td>
                             </tr>
                             <tr v-for="post in filteredPosts" :key="post.id" @click="viewPostDetail(post.id)" class="hover:bg-indigo-50/20 cursor-pointer transition-all">
                                 <td class="py-4 px-6 text-gray-400 font-bold"># {{ post.id }}</td>
                                 <td class="py-4 px-6 font-semibold text-gray-900 hover:text-indigo-600">{{ post.title }}</td>
-                                <td class="py-4 px-6 text-center text-gray-500">익명</td>
-                                <td class="py-4 px-6 text-right text-gray-400">{{ post.date }}</td>
+                                <td class="py-4 px-6 text-center text-gray-500">{{ t('anonymous') }}</td>
+                                <td class="py-4 px-6 text-right text-gray-400">
+                                    <div class="flex flex-col items-end gap-1">
+                                        <span>{{ post.date }}</span>
+                                        <span class="text-[11px] text-indigo-600 font-semibold">{{ t('views_label', { count: post.views || 0 }) }}</span>
+                                    </div>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -195,15 +208,15 @@
             <div v-if="currentView === 'post-detail' && currentPost" class="max-w-3xl mx-auto space-y-6">
                 <!-- 뒤로가기 버튼 -->
                 <button @click="navigateTo('board')" class="text-xs text-gray-500 hover:text-indigo-600 font-bold flex items-center gap-1">
-                    ◀ 목록으로 돌아가기
+                    ◀ {{ t('back_to_list') }}
                 </button>
 
                 <!-- 게시글 본문 카드 -->
                 <div class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
                     <div class="border-b border-gray-100 pb-5">
                         <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
-                            <span>No. {{ currentPost.id }} | 작성자: 익명 | 조회 {{ currentPost.views || 0 }}</span>
-                            <span>작성시간: {{ currentPost.date }}</span>
+                            <span>{{ t('detail_meta', { id: currentPost.id, views: currentPost.views || 0 }) }}</span>
+                            <span>{{ t('detail_date', { date: currentPost.date }) }}</span>
                         </div>
                         <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900">{{ currentPost.title }}</h2>
                     </div>
@@ -216,10 +229,10 @@
                     <!-- 하단 액션 버튼 그룹 (수정/삭제) -->
                     <div class="border-t border-gray-100 pt-5 flex justify-end gap-2">
                         <button @click="openAuthModal('edit')" class="border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold px-4 py-2 rounded-xl text-xs transition-colors">
-                            수정
+                            {{ t('action_edit') }}
                         </button>
                         <button @click="openAuthModal('delete')" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-4 py-2 rounded-xl text-xs transition-colors">
-                            삭제
+                            {{ t('action_delete') }}
                         </button>
                     </div>
                 </div>
@@ -228,36 +241,36 @@
             <!-- ④ 게시글 작성·수정 화면 -->
             <div v-if="currentView === 'post-create' || currentView === 'post-edit'" class="max-w-2xl mx-auto space-y-6">
                 <h2 class="text-2xl font-black text-gray-900">
-                    {{ currentView === 'post-create' ? '게시글 작성' : '게시글 수정' }}
+                    {{ currentView === 'post-create' ? t('create_title') : t('edit_title') }}
                 </h2>
 
                 <form @submit.prevent="submitPost" class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
                     <!-- 제목 입력 -->
                     <div class="space-y-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase">제목</label>
-                        <input v-model="postForm.title" type="text" placeholder="제목을 입력하세요" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                        <label class="text-xs font-bold text-gray-500 uppercase">{{ t('form_title_label') }}</label>
+                        <input v-model="postForm.title" type="text" :placeholder="t('form_title_placeholder')" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
                     </div>
 
                     <!-- 내용 입력 -->
                     <div class="space-y-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase">내용</label>
-                        <textarea v-model="postForm.content" rows="8" placeholder="내용을 작성하세요" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required></textarea>
+                        <label class="text-xs font-bold text-gray-500 uppercase">{{ t('form_content_label') }}</label>
+                        <textarea v-model="postForm.content" rows="8" :placeholder="t('form_content_placeholder')" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required></textarea>
                     </div>
 
                     <!-- 수정용 비밀번호 등록 (의뢰서 필수사양: 평문 저장/비교) -->
                     <div class="space-y-1.5">
-                        <label class="text-xs font-bold text-gray-500 uppercase">수정용 비밀번호 (평문 저장)</label>
-                        <input v-model="postForm.password" type="password" placeholder="비밀번호를 입력하세요 (수정/삭제 시 검증)" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-                        <p class="text-[10px] text-amber-600 font-semibold">⚠️ 의뢰서의 교육 목적 설계 요구에 따라 암호화 없이 저장 및 비교됩니다.</p>
+                        <label class="text-xs font-bold text-gray-500 uppercase">{{ t('password_label') }}</label>
+                        <input v-model="postForm.password" type="password" :placeholder="t('password_placeholder')" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                        <p class="text-[10px] text-amber-600 font-semibold">{{ t('password_note') }}</p>
                     </div>
 
                     <!-- 버튼 그룹 -->
                     <div class="flex justify-end gap-2 pt-4">
                         <button type="button" @click="cancelPostForm" class="border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold px-5 py-2.5 rounded-xl text-xs transition-colors">
-                            취소
+                            {{ t('cancel_button') }}
                         </button>
                         <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition-colors">
-                            등록
+                            {{ t('submit_button') }}
                         </button>
                     </div>
                 </form>
@@ -276,12 +289,12 @@
                 <div class="bg-indigo-600 text-white px-4 py-3 flex items-center justify-between shadow-sm">
                     <div class="flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></span>
-                        <span class="font-bold text-xs tracking-wide">부산 관광 안내 AI 챗봇</span>
+                        <span class="font-bold text-xs tracking-wide">{{ t('chat_title') }}</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <!-- 대화 히스토리 리셋 -->
-                        <button @click="clearChatHistory" title="대화 지우기" class="text-[10px] bg-indigo-700 hover:bg-indigo-800 px-2 py-1 rounded">
-                            초기화
+                        <button @click="clearChatHistory" :title="t('chat_reset_title')" class="text-[10px] bg-indigo-700 hover:bg-indigo-800 px-2 py-1 rounded">
+                            {{ t('chat_reset') }}
                         </button>
                         <button @click="isChatOpen = false" class="text-white hover:text-gray-200">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -297,7 +310,7 @@
                     <div class="flex items-start gap-2">
                         <div class="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0">🤖</div>
                         <div class="bg-white border border-gray-200 text-gray-800 rounded-2xl px-3 py-2 max-w-[85%] leading-relaxed shadow-sm">
-                            안녕하세요! 부산 권역의 관광지 추천, 축제 일정, 게시글 검색 등 원하시는 정보를 자유롭게 물어보세요. (대화 히스토리가 익명 식별 코드로 안전하게 유지됩니다.)
+                            {{ t('chat_greeting') }}
                         </div>
                     </div>
 
@@ -317,9 +330,9 @@
 
                 <!-- 챗봇 푸터 입력창 -->
                 <form @submit.prevent="sendChatMessage" class="p-3 bg-white border-t border-gray-100 flex gap-2">
-                    <input v-model="chatInput" type="text" placeholder="궁금한 부산 정보를 물어보세요..." class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" required>
+                    <input v-model="chatInput" type="text" :placeholder="t('chat_placeholder')" class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500" required>
                     <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition-colors">
-                        전송
+                        {{ t('chat_send') }}
                     </button>
                 </form>
             </div>
@@ -340,17 +353,17 @@
         <!-- ========================================== -->
         <div v-if="showAuthModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-                <h3 class="text-base font-bold text-gray-900 mb-1.5">비밀번호 확인</h3>
+                <h3 class="text-base font-bold text-gray-900 mb-1.5">{{ t('auth_title') }}</h3>
                 <p class="text-xs text-gray-500 mb-4 leading-relaxed">
-                    게시글 생성 시 등록했던 비밀번호를 평문으로 입력하여 권한을 검증합니다.
+                    {{ t('auth_desc') }}
                 </p>
                 
                 <form @submit.prevent="submitAuthPassword">
-                    <input v-model="authPassword" type="password" placeholder="비밀번호를 입력하세요" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4" required>
+                    <input v-model="authPassword" type="password" :placeholder="t('auth_placeholder')" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4" required>
                     
                     <div class="flex justify-end gap-2 text-xs font-semibold">
-                        <button type="button" @click="closeAuthModal" class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-colors">취소</button>
-                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">확인</button>
+                        <button type="button" @click="closeAuthModal" class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg transition-colors">{{ t('cancel_button') }}</button>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">{{ t('auth_confirm') }}</button>
                     </div>
                 </form>
             </div>
@@ -359,16 +372,16 @@
         <!-- 가상 세션 확인 모달 -->
         <div v-if="showSessionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
-                <h3 class="text-base font-bold text-gray-900 mb-1.5">익명 사용자 식별 정보 (UUID)</h3>
+                <h3 class="text-base font-bold text-gray-900 mb-1.5">{{ t('session_title') }}</h3>
                 <p class="text-xs text-gray-500 mb-4 leading-relaxed">
-                    회원가입과 로그인 기능이 없으므로, 로컬 스토리지를 식별 세션으로 가상화하여 백엔드 SQLite DB에 매핑합니다.
+                    {{ t('session_desc') }}
                 </p>
                 <div class="bg-gray-100 p-3 rounded-lg border border-gray-200 mb-4">
                     <code class="text-[11px] font-mono break-all text-indigo-700 font-bold">{{ sessionId }}</code>
                 </div>
                 <div class="flex justify-end gap-2 text-xs font-semibold">
-                    <button @click="regenerateSession" class="bg-amber-100 text-amber-800 hover:bg-amber-200 px-3 py-2 rounded-lg transition-colors">새 코드 발급</button>
-                    <button @click="showSessionModal = false" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">닫기</button>
+                    <button @click="regenerateSession" class="bg-amber-100 text-amber-800 hover:bg-amber-200 px-3 py-2 rounded-lg transition-colors">{{ t('session_new_code') }}</button>
+                    <button @click="showSessionModal = false" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">{{ t('session_close') }}</button>
                 </div>
             </div>
         </div>
@@ -376,10 +389,10 @@
 
         <footer class="border-t border-gray-200 bg-white py-6 text-center mt-8">
             <p class="text-xs text-gray-500">
-                이 서비스는 한국관광공사 Tour API(TourAPI 4.0)의 데이터를 활용하였습니다.
+                {{ t('footer_note1') }}
             </p>
             <p class="text-[11px] text-gray-400 mt-1">
-                출처: 한국관광공사 · 라이선스: 공공누리 제3유형
+                {{ t('footer_note2') }}
             </p>
         </footer>
     </div>
@@ -396,15 +409,164 @@
                 const currentView = ref('home');
                 const searchQuery = ref('');
                 const activeSearch = ref('');
+                const language = ref('ko');
+
+                const translations = {
+                    ko: {
+                        nav_home: '홈',
+                        nav_board: '커뮤니티 게시판',
+                        region_badge: '📍 부산 권역 활성화',
+                        hero_badge: '권역 정보 서비스',
+                        hero_title: '선정 권역: 부산(Busan)의 지역 정보를 한눈에 만나보세요',
+                        hero_desc: 'LocalHub는 부산의 공공데이터를 기반으로 한 신뢰할 수 있는 지역 정보 제공 플랫폼입니다. 관광지, 문화시설, 레포츠, 숙박 정보는 물론, 주민들과 자유롭게 소통하는 익명 게시판을 지금 이용해 보세요!',
+                        quick_menu_title: '카테고리 정보 바로가기',
+                        public_data_title: '공공 데이터 목록',
+                        public_data_count: '제공 데이터 개수: {count}개',
+                        image_none: '이미지 없음',
+                        default_subtag: '부산 명소',
+                        default_location: '서울 전체',
+                        rating_label: '별점: ⭐ {rating}',
+                        recent_posts_title: '최근 익명 게시글',
+                        view_all: '전체보기',
+                        no_posts: '등록된 게시글이 없습니다.',
+                        board_title: '지역 커뮤니티 게시판',
+                        board_desc: '로그인 없는 자유로운 익명 소통 공간입니다. (수정/삭제 시 비밀번호 필요)',
+                        create_post: '+ 새 글 작성',
+                        search_placeholder: '검색어를 입력하세요 (제목, 내용)',
+                        search_button: '검색',
+                        table_no: '번호',
+                        table_title: '제목',
+                        table_author: '작성자',
+                        table_date: '작성일',
+                        empty_results: '검색 조건에 맞는 게시글이 없습니다.',
+                        anonymous: '익명',
+                        back_to_list: '목록으로 돌아가기',
+                        detail_meta: 'No. {id} | 작성자: 익명 | 조회 {views}',
+                        detail_date: '작성시간: {date}',
+                        action_edit: '수정',
+                        action_delete: '삭제',
+                        create_title: '게시글 작성',
+                        edit_title: '게시글 수정',
+                        form_title_label: '제목',
+                        form_title_placeholder: '제목을 입력하세요',
+                        form_content_label: '내용',
+                        form_content_placeholder: '내용을 작성하세요',
+                        password_label: '수정용 비밀번호 (평문 저장)',
+                        password_placeholder: '비밀번호를 입력하세요 (수정/삭제 시 검증)',
+                        password_note: '⚠️ 의뢰서의 교육 목적 설계 요구에 따라 암호화 없이 저장 및 비교됩니다.',
+                        cancel_button: '취소',
+                        submit_button: '등록',
+                        auth_title: '비밀번호 확인',
+                        auth_desc: '게시글 생성 시 등록했던 비밀번호를 평문으로 입력하여 권한을 검증합니다.',
+                        auth_placeholder: '비밀번호를 입력하세요',
+                        auth_confirm: '확인',
+                        session_title: '익명 사용자 식별 정보 (UUID)',
+                        session_desc: '회원가입과 로그인 기능이 없으므로, 로컬 스토리지를 식별 세션으로 가상화하여 백엔드 SQLite DB에 매핑합니다.',
+                        session_new_code: '새 코드 발급',
+                        session_close: '닫기',
+                        chat_title: '부산 관광 안내 AI 챗봇',
+                        chat_reset_title: '대화 지우기',
+                        chat_reset: '초기화',
+                        chat_placeholder: '궁금한 부산 정보를 물어보세요...',
+                        chat_send: '전송',
+                        chat_greeting: '안녕하세요! 부산 권역의 관광지 추천, 축제 일정, 게시글 검색 등 원하시는 정보를 자유롭게 물어보세요. (대화 히스토리가 익명 식별 코드로 안전하게 유지됩니다.)',
+                        views_label: '조회 {count}',
+                        footer_note1: '이 서비스는 한국관광공사 Tour API(TourAPI 4.0)의 데이터를 활용하였습니다.',
+                        footer_note2: '출처: 한국관광공사 · 라이선스: 공공누리 제3유형'
+                    },
+                    en: {
+                        nav_home: 'Home',
+                        nav_board: 'Community Board',
+                        region_badge: '📍 Busan Region Active',
+                        hero_badge: 'Regional Information Service',
+                        hero_title: 'Discover Busan (Busan) regional information at a glance',
+                        hero_desc: 'LocalHub is a reliable local information platform based on Busan public data. Explore tourist sites, cultural facilities, leisure activities, lodging information, and join an anonymous community board to share ideas with residents.',
+                        quick_menu_title: 'Quick access to category information',
+                        public_data_title: 'public data list',
+                        public_data_count: 'Available items: {count}',
+                        image_none: 'No image',
+                        default_subtag: 'Busan landmark',
+                        default_location: 'All of Busan',
+                        rating_label: 'Rating: ⭐ {rating}',
+                        recent_posts_title: 'Recent anonymous posts',
+                        view_all: 'View all',
+                        no_posts: 'No posts yet.',
+                        board_title: 'Local Community Board',
+                        board_desc: 'A free anonymous space without login. Password is required for editing or deleting posts.',
+                        create_post: '+ Create Post',
+                        search_placeholder: 'Search by title or content',
+                        search_button: 'Search',
+                        table_no: 'No.',
+                        table_title: 'Title',
+                        table_author: 'Author',
+                        table_date: 'Date',
+                        empty_results: 'No posts match your search.',
+                        anonymous: 'Anonymous',
+                        back_to_list: 'Back to list',
+                        detail_meta: 'No. {id} | Author: Anonymous | Views {views}',
+                        detail_date: 'Posted at: {date}',
+                        action_edit: 'Edit',
+                        action_delete: 'Delete',
+                        create_title: 'Create Post',
+                        edit_title: 'Edit Post',
+                        form_title_label: 'Title',
+                        form_title_placeholder: 'Enter a title',
+                        form_content_label: 'Content',
+                        form_content_placeholder: 'Write your content',
+                        password_label: 'Password for editing (stored as plain text)',
+                        password_placeholder: 'Enter password for edit/delete verification',
+                        password_note: '⚠️ This demo stores and compares passwords in plain text for educational purposes.',
+                        cancel_button: 'Cancel',
+                        submit_button: 'Submit',
+                        auth_title: 'Password verification',
+                        auth_desc: 'Enter the password you set when creating the post to verify your permission.',
+                        auth_placeholder: 'Enter password',
+                        auth_confirm: 'Confirm',
+                        session_title: 'Anonymous user ID (UUID)',
+                        session_desc: 'Since there is no sign-up or login feature, the app maps a local storage session to the backend SQLite database.',
+                        session_new_code: 'Generate new code',
+                        session_close: 'Close',
+                        chat_title: 'Busan Travel AI Chatbot',
+                        chat_reset_title: 'Clear chat history',
+                        chat_reset: 'Reset',
+                        chat_placeholder: 'Ask about Busan attractions...',
+                        chat_send: 'Send',
+                        chat_greeting: 'Hello! Feel free to ask about Busan attractions, festival schedules, or community post search. (Your chat history is stored anonymously with an ID.)',
+                        views_label: 'Views {count}',
+                        footer_note1: 'This service uses the Korea Tourism Organization Tour API (TourAPI 4.0).',
+                        footer_note2: 'Source: Korea Tourism Organization · License: Public Nuri Type 3'
+                    }
+                };
+
+                const categoryNames = {
+                    ko: {
+                        tourist: '관광지',
+                        culture: '문화시설',
+                        sports: '레포츠',
+                        shopping: '쇼핑',
+                        stay: '숙박',
+                        course: '여행코스',
+                        festival: '축제공연'
+                    },
+                    en: {
+                        tourist: 'Tourist Attractions',
+                        culture: 'Cultural Facilities',
+                        sports: 'Leisure & Sports',
+                        shopping: 'Shopping',
+                        stay: 'Accommodation',
+                        course: 'Travel Courses',
+                        festival: 'Festivals & Performances'
+                    }
+                };
 
                 const infoCategories = [
-                    { id: 'tourist', name: '관광지', emoji: '🏔️' },
-                    { id: 'culture', name: '문화시설', emoji: '🏛️' },
-                    { id: 'sports', name: '레포츠', emoji: '🏄' },
-                    { id: 'shopping', name: '쇼핑', emoji: '🛒' },
-                    { id: 'stay', name: '숙박', emoji: '🏨' },
-                    { id: 'course', name: '여행코스', emoji: '🗺️' },
-                    { id: 'festival', name: '축제공연', emoji: '🎉' }
+                    { id: 'tourist', emoji: '🏔️' },
+                    { id: 'culture', emoji: '🏛️' },
+                    { id: 'sports', emoji: '🏄' },
+                    { id: 'shopping', emoji: '🛒' },
+                    { id: 'stay', emoji: '🏨' },
+                    { id: 'course', emoji: '🗺️' },
+                    { id: 'festival', emoji: '🎉' }
                 ];
 
                 const categoryMap = {
@@ -457,19 +619,52 @@
                     date: post.created_at ? post.created_at.slice(0, 10) : ''
                 });
 
+                const resetBoardSearch = () => {
+                    searchQuery.value = '';
+                    activeSearch.value = '';
+                };
+
                 const navigateTo = (viewName) => {
                     currentView.value = viewName;
-                    if (viewName !== 'board') {
-                        searchQuery.value = '';
-                        activeSearch.value = '';
+                    if (viewName === 'home') {
+                        resetBoardSearch();
+                        loadPosts();
+                    } else if (viewName === 'board') {
+                        resetBoardSearch();
+                        loadPosts();
                     }
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
 
-                const getActiveCategoryName = () => {
-                    const cat = infoCategories.find(c => c.id === activeCategory.value);
-                    return cat ? cat.name : '관광지';
+                const t = (key, params = {}) => {
+                    const lang = language.value === 'en' ? 'en' : 'ko';
+                    const raw = translations[lang][key] || translations.ko[key] || key;
+                    return Object.entries(params).reduce((result, [name, value]) => result.replace(`{${name}}`, value), raw);
                 };
+
+                const setLanguage = (lang) => {
+                    language.value = lang;
+                    localStorage.setItem('localhub_language', lang);
+                    document.documentElement.lang = lang === 'en' ? 'en' : 'ko';
+                    document.title = lang === 'en' ? 'LocalHub - Community for Local Information' : 'LocalHub - 지역 정보 공유 커뮤니티';
+                };
+
+                const initLanguage = () => {
+                    const saved = localStorage.getItem('localhub_language');
+                    if (saved === 'en' || saved === 'ko') {
+                        setLanguage(saved);
+                    } else {
+                        setLanguage('ko');
+                    }
+                };
+
+                const getCategoryName = (catId) => {
+                    const lang = language.value === 'en' ? 'en' : 'ko';
+                    return categoryNames[lang][catId] || categoryNames.ko[catId] || catId;
+                };
+
+                const getActiveCategoryName = () => getCategoryName(activeCategory.value);
+
 
                 const getActiveCategoryItems = () => locationItems.value;
 
@@ -547,7 +742,9 @@
                 };
 
                 const triggerSearch = async () => {
-                    await loadPosts(searchQuery.value);
+                    const keyword = searchQuery.value.trim();
+                    activeSearch.value = keyword;
+                    await loadPosts(keyword);
                 };
 
                 const filteredPosts = computed(() => posts.value);
@@ -671,6 +868,7 @@
 
                 onMounted(async () => {
                     initSession();
+                    initLanguage();
                     loadChatHistory();
                     await Promise.all([loadPosts(), loadLocations()]);
                 });
@@ -681,11 +879,12 @@
                     showAuthModal, authPassword, authMode,
                     isChatOpen, chatInput, chatHistory, chatBox,
                     sessionId, showSessionModal, locationsLoading,
-                    navigateTo, selectCategory, getActiveCategoryName,
+                    language, navigateTo, selectCategory, getActiveCategoryName,
                     getActiveCategoryItems, viewPostDetail, triggerSearch,
                     filteredPosts, cancelPostForm, submitPost,
                     openAuthModal, closeAuthModal, submitAuthPassword,
-                    clearChatHistory, sendChatMessage, regenerateSession
+                    clearChatHistory, sendChatMessage, regenerateSession,
+                    t, setLanguage, getCategoryName
                 };
             }
         }).mount('#app');
