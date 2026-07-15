@@ -8,9 +8,26 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Vue.js 3 Global Build CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Leaflet (OpenStreetMap) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Tailwind Custom Scrollbar 및 애니메이션 보완 -->
     <style>
         [v-cloak] { display: none; }
+
+        .location-map {
+            width: 100%;
+            height: 100%;
+            min-height: 320px;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: #f3f4f6;
+        }
+
+        .location-map .leaflet-container {
+            width: 100%;
+            height: 100%;
+        }
         
         /* 챗봇 모바일 전체화면 모드 */
         @media (max-width: 640px) {
@@ -397,21 +414,23 @@
                         <div class="border-t border-gray-100 pt-4 text-sm text-gray-700 space-y-2">
                             <div v-if="selectedLocation.address"><strong class="text-gray-900">주소:</strong> {{ selectedLocation.address }}</div>
                             <div v-if="selectedLocation.telephone"><strong class="text-gray-900">전화:</strong> {{ selectedLocation.telephone }}</div>
-                            <div v-if="selectedLocation.longitude !== undefined && selectedLocation.latitude !== undefined">
-                                <strong class="text-gray-900">좌표:</strong> {{ selectedLocation.latitude }}, {{ selectedLocation.longitude }}
-                            </div>
                         </div>
                     </div>
 
-                    <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 min-h-[320px] flex items-center justify-center">
-                        <div class="text-center px-6">
-                            <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-white border border-gray-200 flex items-center justify-center text-indigo-500">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5-5m0 0l5-5m-5 5h14"></path>
-                                </svg>
+                    <div class="rounded-2xl border border-gray-200 bg-gray-50 min-h-[320px] overflow-hidden">
+                        <div v-if="selectedLocation && hasLocationCoordinates(selectedLocation)" class="w-full h-full min-h-[320px]">
+                            <div ref="mapContainer" class="location-map"></div>
+                        </div>
+                        <div v-else class="w-full h-full min-h-[320px] flex items-center justify-center">
+                            <div class="text-center px-6">
+                                <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-white border border-gray-200 flex items-center justify-center text-indigo-500">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5-5m0 0l5-5m-5 5h14"></path>
+                                    </svg>
+                                </div>
+                                <p class="text-sm font-bold text-gray-700">지도 영역</p>
+                                <p class="text-xs text-gray-500 mt-1">해당 장소의 좌표가 없으면 지도를 표시할 수 없습니다.</p>
                             </div>
-                            <p class="text-sm font-bold text-gray-700">지도 영역</p>
-                            <p class="text-xs text-gray-500 mt-1">추후 해당 장소 위치를 지도에서 보여줄 예정입니다.</p>
                         </div>
                     </div>
                 </div>
@@ -449,7 +468,7 @@
     <!-- Vue.js 애플리케이션 정의 -->
 
     <script>
-        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+        const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
 
         createApp({
             setup() {
@@ -633,6 +652,8 @@
                 const locationsLoading = ref(false);
                 const showLocationModal = ref(false);
                 const selectedLocation = ref(null);
+                const mapContainer = ref(null);
+                const mapInstance = ref(null);
 
                 const sessionId = ref('');
                 const showSessionModal = ref(false);
@@ -750,14 +771,63 @@
                     await loadLocations();
                 };
 
+                const hasLocationCoordinates = (item) => {
+                    const latitude = Number(item?.latitude);
+                    const longitude = Number(item?.longitude);
+                    return Number.isFinite(latitude) && Number.isFinite(longitude);
+                };
+
+                const cleanupLocationMap = () => {
+                    if (mapInstance.value) {
+                        mapInstance.value.remove();
+                        mapInstance.value = null;
+                    }
+                };
+
+                const initLocationMap = () => {
+                    if (!window.L || !mapContainer.value || !selectedLocation.value) {
+                        cleanupLocationMap();
+                        return;
+                    }
+
+                    if (!hasLocationCoordinates(selectedLocation.value)) {
+                        cleanupLocationMap();
+                        return;
+                    }
+
+                    cleanupLocationMap();
+
+                    const latitude = Number(selectedLocation.value.latitude);
+                    const longitude = Number(selectedLocation.value.longitude);
+                    const map = window.L.map(mapContainer.value, {
+                        zoomControl: true,
+                        scrollWheelZoom: true,
+                        dragging: true
+                    }).setView([latitude, longitude], 14);
+
+                    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors',
+                        maxZoom: 19
+                    }).addTo(map);
+
+                    window.L.marker([latitude, longitude])
+                        .addTo(map)
+                        .bindPopup(selectedLocation.value.title || '장소 위치')
+                        .openPopup();
+
+                    mapInstance.value = map;
+                };
+
                 const openLocationModal = (item) => {
                     selectedLocation.value = item;
                     showLocationModal.value = true;
+                    nextTick(() => initLocationMap());
                 };
 
                 const closeLocationModal = () => {
                     showLocationModal.value = false;
                     selectedLocation.value = null;
+                    cleanupLocationMap();
                 };
 
                 const initSession = () => {
@@ -927,6 +997,20 @@
                     }
                 };
 
+                watch(showLocationModal, (isOpen) => {
+                    if (isOpen) {
+                        nextTick(() => initLocationMap());
+                    } else {
+                        cleanupLocationMap();
+                    }
+                });
+
+                watch(selectedLocation, () => {
+                    if (showLocationModal.value) {
+                        nextTick(() => initLocationMap());
+                    }
+                });
+
                 onMounted(async () => {
                     initSession();
                     initLanguage();
@@ -940,13 +1024,13 @@
                     showAuthModal, authPassword, authMode,
                     isChatOpen, chatInput, chatHistory, chatBox,
                     sessionId, showSessionModal, locationsLoading,
-                    showLocationModal, selectedLocation,
+                    showLocationModal, selectedLocation, mapContainer,
                     language, navigateTo, selectCategory, openLocationModal, closeLocationModal, getActiveCategoryName,
                     getActiveCategoryItems, viewPostDetail, triggerSearch,
                     filteredPosts, cancelPostForm, submitPost,
                     openAuthModal, closeAuthModal, submitAuthPassword,
                     clearChatHistory, sendChatMessage, regenerateSession,
-                    t, setLanguage, getCategoryName
+                    t, setLanguage, getCategoryName, hasLocationCoordinates
                 };
             }
         }).mount('#app');
