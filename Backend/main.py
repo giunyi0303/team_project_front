@@ -1,5 +1,9 @@
+import json
+import os
+import re
 from pathlib import Path
 from typing import Optional
+from urllib import error, request
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -225,11 +229,106 @@ def delete_post(
     return {"message": "삭제되었습니다."}
 
 
+def extract_meaningful_keywords(message: str) -> list[str]:
+    normalized = re.sub(r"[^가-힣a-zA-Z0-9\s]", " ", message)
+    tokens = [token.strip() for token in normalized.split() if token.strip()]
+
+    stop_words = {
+        "가", "가볼", "가볼만한", "같이", "거기", "그리고", "그냥", "그럼", "그래서",
+        "는데", "는", "도", "들", "때", "만", "만한", "면", "좀", "저", "저도",
+        "추천", "추천해줘", "해주세요", "해줘", "줘", "좀", "어디", "뭐", "무엇",
+        "좋은", "좋아요", "부산", "여행", "가요", "해", "해서", "해서", "이요"
+    }
+
+    keywords = []
+    for token in tokens:
+        cleaned = token.lower()
+        if len(cleaned) < 2 or cleaned in stop_words:
+            continue
+        keywords.append(cleaned)
+
+    return keywords
+
+
+def get_openai_chat_reply(message: str, db: Session) -> Optional[str]:
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return None
+
+    query = db.query(models.Location)
+    keywords = extract_meaningful_keywords(message)
+
+    if keywords:
+        pattern_terms = [f"%{keyword}%" for keyword in keywords]
+        title_filters = [models.Location.title.like(pattern) for pattern in pattern_terms]
+        address_filters = [models.Location.address.like(pattern) for pattern in pattern_terms]
+        detail_filters = [models.Location.address_detail.like(pattern) for pattern in pattern_terms]
+        query = query.filter(
+            or_(
+                *title_filters,
+                *address_filters,
+                *detail_filters,
+            )
+        )
+
+    locations = query.order_by(models.Location.id.asc()).limit(10).all()
+    location_context = "\n".join(
+        f"- {item.title} ({item.category}, {item.address or '주소 없음'})"
+        for item in locations
+    )
+
+    prompt = (
+        "당신은 부산 여행을 도와주는 친절한 챗봇입니다. "
+        "사용자의 질문에 한국어로 짧고 자연스럽게 답하세요. "
+        "아래는 DB에 저장된 부산 지역 정보입니다. 이 정보를 참고해서 답변하세요. "
+        f"\n\n[DB 위치 정보]\n{location_context}"
+    )
+
+    if not locations and keywords:
+        prompt += (
+            "\n\nDB에 직접 일치하는 장소가 없더라도, 아래 핵심 키워드를 참고해서 "
+            "사용자의 의도와 관련된 부산 여행 정보를 자연스럽게 답변하세요. "
+            f"\n[핵심 키워드]\n{', '.join(keywords)}"
+        )
+
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": message},
+        ],
+        "temperature": 0.7,
+    }
+
+    data = json.dumps(payload).encode("utf-8")
+    req = request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=data,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with request.urlopen(req, timeout=20) as response:
+            result = json.loads(response.read().decode("utf-8"))
+            content = result["choices"][0]["message"]["content"].strip()
+            return content or None
+    except (error.HTTPError, error.URLError, KeyError, IndexError, TimeoutError, ValueError):
+        return None
+
+
 @app.post("/api/chat")
 def chat(payload: dict, db: Session = Depends(get_db)):
     message = str(payload.get("message", "")).strip()
     if not message:
         raise HTTPException(status_code=400, detail="질문을 입력해 주세요.")
+
+    openai_reply = get_openai_chat_reply(message, db)
+    if openai_reply:
+        return {"answer": openai_reply}
 
     category_keywords = {
         "관광": "관광지",
