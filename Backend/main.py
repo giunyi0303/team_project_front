@@ -1,9 +1,14 @@
+import json
+import os
+import re
 from pathlib import Path
 from typing import Optional
+from urllib import error, request
 
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import func, or_
+from fastapi.responses import FileResponse
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
 import models
@@ -12,6 +17,32 @@ from database import Base, SessionLocal, engine
 from import_data import import_json_data
 
 Base.metadata.create_all(bind=engine)
+
+FRONT_INDEX = Path(__file__).resolve().parent.parent / "Front" / "index.html"
+
+
+def ensure_schema():
+    with engine.begin() as conn:
+        posts_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(posts)"))}
+        if "comment_count" not in posts_columns:
+            conn.execute(text("ALTER TABLE posts ADD COLUMN comment_count INTEGER NOT NULL DEFAULT 0"))
+
+        comments_exists = conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type='table' AND name='comments'")
+        ).fetchone()
+        if comments_exists is None:
+            conn.execute(text("CREATE TABLE comments (id INTEGER NOT NULL PRIMARY KEY, post_id INTEGER NOT NULL, content TEXT NOT NULL, password TEXT NOT NULL DEFAULT '', created_at DATETIME NOT NULL, FOREIGN KEY(post_id) REFERENCES posts (id) ON DELETE CASCADE)"))
+        else:
+            comments_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(comments)"))}
+            if "password" not in comments_columns:
+                conn.execute(text("ALTER TABLE comments ADD COLUMN password TEXT NOT NULL DEFAULT ''"))
+
+    with SessionLocal() as db:
+        db.query(models.Post).filter(models.Post.comment_count.is_(None)).update({models.Post.comment_count: 0})
+        db.commit()
+
+
+ensure_schema()
 
 app = FastAPI(
     title="LocalHub 부산 API",
@@ -30,6 +61,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup_event():
+    ensure_schema()
+
     # 배포 환경에서 DB가 비어 있으면 번들 JSON을 자동 적재합니다.
     db = SessionLocal()
     try:
@@ -49,12 +82,16 @@ def get_db():
         db.close()
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def root():
-    return {
-        "message": "LocalHub 부산 API가 정상 실행 중입니다.",
-        "docs": "/docs",
-    }
+    if FRONT_INDEX.exists():
+        return FileResponse(FRONT_INDEX)
+    return {"message": "LocalHub 부산 API가 정상 실행 중입니다.", "docs": "/docs"}
+
+
+@app.get("/api", include_in_schema=False)
+def api_root():
+    return {"message": "LocalHub 부산 API가 정상 실행 중입니다.", "docs": "/docs"}
 
 
 @app.get("/api/health")
@@ -158,6 +195,7 @@ def create_post(data: schemas.PostCreate, db: Session = Depends(get_db)):
         title=data.title.strip(),
         content=data.content.strip(),
         password=data.password,
+        comment_count=0,
     )
     db.add(post)
     db.commit()
@@ -198,6 +236,132 @@ def verify_post_password(
     return {"verified": True}
 
 
+@app.get("/api/posts/{post_id}/comments", response_model=list[schemas.CommentResponse])
+def get_comments(post_id: int, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if post is None:
+        raise HTTPException(status_code=404, detail="게시글이 없습니다.")
+
+    return (
+        db.query(models.Comment)
+        .filter(models.Comment.post_id == post_id)
+        .order_by(models.Comment.id.asc())
+        .all()
+    )
+
+
+@app.post("/api/posts/{post_id}/comments", response_model=schemas.CommentResponse, status_code=201)
+def create_comment(post_id: int, data: schemas.CommentCreate, db: Session = Depends(get_db)):
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if post is None:
+        raise HTTPException(status_code=404, detail="게시글이 없습니다.")
+
+    content = data.content.strip()
+    password = data.password.strip()
+    if not content:
+        raise HTTPException(status_code=422, detail="답글 내용을 입력해 주세요.")
+    if not password:
+        raise HTTPException(status_code=422, detail="비밀번호를 입력해 주세요.")
+
+    try:
+        comment = models.Comment(post_id=post_id, content=content, password=password)
+        db.add(comment)
+        db.flush()
+
+        post.comment_count = (
+            db.query(func.count(models.Comment.id))
+            .filter(models.Comment.post_id == post_id)
+            .scalar()
+            or 0
+        )
+        db.commit()
+        db.refresh(comment)
+        return comment
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="답글 저장 중 DB 오류가 발생했습니다.")
+
+
+@app.post("/api/posts/{post_id}/comments/{comment_id}/verify")
+def verify_comment_password(
+    post_id: int,
+    comment_id: int,
+    data: schemas.PasswordRequest,
+    db: Session = Depends(get_db),
+):
+    comment = (
+        db.query(models.Comment)
+        .filter(models.Comment.id == comment_id, models.Comment.post_id == post_id)
+        .first()
+    )
+    if comment is None:
+        raise HTTPException(status_code=404, detail="답글이 없습니다.")
+    if comment.password != data.password:
+        raise HTTPException(status_code=403, detail="비밀번호가 일치하지 않습니다.")
+    return {"verified": True}
+
+
+@app.put("/api/posts/{post_id}/comments/{comment_id}", response_model=schemas.CommentResponse)
+def update_comment(
+    post_id: int,
+    comment_id: int,
+    data: schemas.CommentUpdate,
+    db: Session = Depends(get_db),
+):
+    comment = (
+        db.query(models.Comment)
+        .filter(models.Comment.id == comment_id, models.Comment.post_id == post_id)
+        .first()
+    )
+    if comment is None:
+        raise HTTPException(status_code=404, detail="답글이 없습니다.")
+    if comment.password != data.password:
+        raise HTTPException(status_code=403, detail="비밀번호가 일치하지 않습니다.")
+
+    content = data.content.strip()
+    if not content:
+        raise HTTPException(status_code=422, detail="답글 내용을 입력해 주세요.")
+
+    comment.content = content
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
+@app.delete("/api/posts/{post_id}/comments/{comment_id}")
+def delete_comment(
+    post_id: int,
+    comment_id: int,
+    data: schemas.PasswordRequest,
+    db: Session = Depends(get_db),
+):
+    comment = (
+        db.query(models.Comment)
+        .filter(models.Comment.id == comment_id, models.Comment.post_id == post_id)
+        .first()
+    )
+    if comment is None:
+        raise HTTPException(status_code=404, detail="답글이 없습니다.")
+    if comment.password != data.password:
+        raise HTTPException(status_code=403, detail="비밀번호가 일치하지 않습니다.")
+
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    if post is not None:
+        db.delete(comment)
+        post.comment_count = (
+            db.query(func.count(models.Comment.id))
+            .filter(models.Comment.post_id == post_id)
+            .scalar()
+            or 0
+        )
+        db.commit()
+        return {"message": "삭제되었습니다."}
+
+    db.delete(comment)
+    db.commit()
+    return {"message": "삭제되었습니다."}
+
+
 @app.delete("/api/posts/{post_id}")
 def delete_post(
     post_id: int,
@@ -225,11 +389,106 @@ def delete_post(
     return {"message": "삭제되었습니다."}
 
 
+def extract_meaningful_keywords(message: str) -> list[str]:
+    normalized = re.sub(r"[^가-힣a-zA-Z0-9\s]", " ", message)
+    tokens = [token.strip() for token in normalized.split() if token.strip()]
+
+    stop_words = {
+        "가", "가볼", "가볼만한", "같이", "거기", "그리고", "그냥", "그럼", "그래서",
+        "는데", "는", "도", "들", "때", "만", "만한", "면", "좀", "저", "저도",
+        "추천", "추천해줘", "해주세요", "해줘", "줘", "좀", "어디", "뭐", "무엇",
+        "좋은", "좋아요", "부산", "여행", "가요", "해", "해서", "해서", "이요"
+    }
+
+    keywords = []
+    for token in tokens:
+        cleaned = token.lower()
+        if len(cleaned) < 2 or cleaned in stop_words:
+            continue
+        keywords.append(cleaned)
+
+    return keywords
+
+
+def get_openai_chat_reply(message: str, db: Session) -> Optional[str]:
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return None
+
+    query = db.query(models.Location)
+    keywords = extract_meaningful_keywords(message)
+
+    if keywords:
+        pattern_terms = [f"%{keyword}%" for keyword in keywords]
+        title_filters = [models.Location.title.like(pattern) for pattern in pattern_terms]
+        address_filters = [models.Location.address.like(pattern) for pattern in pattern_terms]
+        detail_filters = [models.Location.address_detail.like(pattern) for pattern in pattern_terms]
+        query = query.filter(
+            or_(
+                *title_filters,
+                *address_filters,
+                *detail_filters,
+            )
+        )
+
+    locations = query.order_by(models.Location.id.asc()).limit(10).all()
+    location_context = "\n".join(
+        f"- {item.title} ({item.category}, {item.address or '주소 없음'})"
+        for item in locations
+    )
+
+    prompt = (
+        "당신은 부산 여행을 도와주는 친절한 챗봇입니다. "
+        "사용자의 질문에 한국어로 짧고 자연스럽게 답하세요. "
+        "아래는 DB에 저장된 부산 지역 정보입니다. 이 정보를 참고해서 답변하세요. "
+        f"\n\n[DB 위치 정보]\n{location_context}"
+    )
+
+    if not locations and keywords:
+        prompt += (
+            "\n\nDB에 직접 일치하는 장소가 없더라도, 아래 핵심 키워드를 참고해서 "
+            "사용자의 의도와 관련된 부산 여행 정보를 자연스럽게 답변하세요. "
+            f"\n[핵심 키워드]\n{', '.join(keywords)}"
+        )
+
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": message},
+        ],
+        "temperature": 0.7,
+    }
+
+    data = json.dumps(payload).encode("utf-8")
+    req = request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=data,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with request.urlopen(req, timeout=20) as response:
+            result = json.loads(response.read().decode("utf-8"))
+            content = result["choices"][0]["message"]["content"].strip()
+            return content or None
+    except (error.HTTPError, error.URLError, KeyError, IndexError, TimeoutError, ValueError):
+        return None
+
+
 @app.post("/api/chat")
 def chat(payload: dict, db: Session = Depends(get_db)):
     message = str(payload.get("message", "")).strip()
     if not message:
         raise HTTPException(status_code=400, detail="질문을 입력해 주세요.")
+
+    openai_reply = get_openai_chat_reply(message, db)
+    if openai_reply:
+        return {"answer": openai_reply}
 
     category_keywords = {
         "관광": "관광지",
