@@ -8,9 +8,26 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Vue.js 3 Global Build CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Leaflet (OpenStreetMap) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Tailwind Custom Scrollbar 및 애니메이션 보완 -->
     <style>
         [v-cloak] { display: none; }
+
+        .location-map {
+            width: 100%;
+            height: 100%;
+            min-height: 320px;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: #f3f4f6;
+        }
+
+        .location-map .leaflet-container {
+            width: 100%;
+            height: 100%;
+        }
         
         /* 챗봇 모바일 전체화면 모드 */
         @media (max-width: 640px) {
@@ -105,7 +122,7 @@
 
                         <!-- 카테고리 데이터 카드 리스트 (스크롤 최적화) -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div v-for="item in getActiveCategoryItems()" :key="item.id" class="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-sm transition-all flex flex-col justify-between">
+                            <div v-for="item in getActiveCategoryItems()" :key="item.id" @click="openLocationModal(item)" class="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer">
                                 <div>
                                     <div class="mb-4 h-40 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
                                         <img v-if="item.image" :src="item.image" :alt="item.title" class="w-full h-full object-cover" loading="lazy" @error="$event.target.style.display='none'">
@@ -437,6 +454,57 @@
             </div>
         </div>
 
+        <!-- 장소 상세 정보 모달 -->
+        <div v-if="showLocationModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl max-w-5xl w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+                <button @click="closeLocationModal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+
+                <div v-if="selectedLocation" class="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6">
+                    <div class="space-y-4">
+                        <div class="h-56 rounded-2xl overflow-hidden bg-gray-100 flex items-center justify-center">
+                            <img v-if="selectedLocation.image" :src="selectedLocation.image" :alt="selectedLocation.title" class="w-full h-full object-cover" loading="lazy" @error="$event.target.style.display='none'">
+                            <span v-else class="text-sm text-gray-400">{{ t('image_none') }}</span>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">{{ selectedLocation.subTag || t('default_subtag') }}</span>
+                                <span class="text-xs text-gray-400 font-semibold">{{ selectedLocation.location || t('default_location') }}</span>
+                            </div>
+                            <h3 class="text-xl font-black text-gray-900">{{ selectedLocation.title }}</h3>
+                            <p class="text-sm text-gray-600 leading-relaxed">{{ selectedLocation.desc }}</p>
+                        </div>
+
+                        <div class="border-t border-gray-100 pt-4 text-sm text-gray-700 space-y-2">
+                            <div v-if="selectedLocation.address"><strong class="text-gray-900">주소:</strong> {{ selectedLocation.address }}</div>
+                            <div v-if="selectedLocation.telephone"><strong class="text-gray-900">전화:</strong> {{ selectedLocation.telephone }}</div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-gray-200 bg-gray-50 min-h-[320px] overflow-hidden">
+                        <div v-if="selectedLocation && hasLocationCoordinates(selectedLocation)" class="w-full h-full min-h-[320px]">
+                            <div ref="mapContainer" class="location-map"></div>
+                        </div>
+                        <div v-else class="w-full h-full min-h-[320px] flex items-center justify-center">
+                            <div class="text-center px-6">
+                                <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-white border border-gray-200 flex items-center justify-center text-indigo-500">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5-5m0 0l5-5m-5 5h14"></path>
+                                    </svg>
+                                </div>
+                                <p class="text-sm font-bold text-gray-700">지도 영역</p>
+                                <p class="text-xs text-gray-500 mt-1">해당 장소의 좌표가 없으면 지도를 표시할 수 없습니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 가상 세션 확인 모달 -->
         <div v-if="showSessionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
@@ -468,7 +536,7 @@
     <!-- Vue.js 애플리케이션 정의 -->
 
     <script>
-        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+        const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
 
         createApp({
             setup() {
@@ -678,6 +746,10 @@
                 const activeCategory = ref('tourist');
                 const locationItems = ref([]);
                 const locationsLoading = ref(false);
+                const showLocationModal = ref(false);
+                const selectedLocation = ref(null);
+                const mapContainer = ref(null);
+                const mapInstance = ref(null);
 
                 const sessionId = ref('');
                 const showSessionModal = ref(false);
@@ -802,6 +874,65 @@
                 const selectCategory = async (catId) => {
                     activeCategory.value = catId;
                     await loadLocations();
+                };
+
+                const hasLocationCoordinates = (item) => {
+                    const latitude = Number(item?.latitude);
+                    const longitude = Number(item?.longitude);
+                    return Number.isFinite(latitude) && Number.isFinite(longitude);
+                };
+
+                const cleanupLocationMap = () => {
+                    if (mapInstance.value) {
+                        mapInstance.value.remove();
+                        mapInstance.value = null;
+                    }
+                };
+
+                const initLocationMap = () => {
+                    if (!window.L || !mapContainer.value || !selectedLocation.value) {
+                        cleanupLocationMap();
+                        return;
+                    }
+
+                    if (!hasLocationCoordinates(selectedLocation.value)) {
+                        cleanupLocationMap();
+                        return;
+                    }
+
+                    cleanupLocationMap();
+
+                    const latitude = Number(selectedLocation.value.latitude);
+                    const longitude = Number(selectedLocation.value.longitude);
+                    const map = window.L.map(mapContainer.value, {
+                        zoomControl: true,
+                        scrollWheelZoom: true,
+                        dragging: true
+                    }).setView([latitude, longitude], 14);
+
+                    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors',
+                        maxZoom: 19
+                    }).addTo(map);
+
+                    window.L.marker([latitude, longitude])
+                        .addTo(map)
+                        .bindPopup(selectedLocation.value.title || '장소 위치')
+                        .openPopup();
+
+                    mapInstance.value = map;
+                };
+
+                const openLocationModal = (item) => {
+                    selectedLocation.value = item;
+                    showLocationModal.value = true;
+                    nextTick(() => initLocationMap());
+                };
+
+                const closeLocationModal = () => {
+                    showLocationModal.value = false;
+                    selectedLocation.value = null;
+                    cleanupLocationMap();
                 };
 
                 const initSession = () => {
@@ -1102,6 +1233,20 @@
                     }
                 };
 
+                watch(showLocationModal, (isOpen) => {
+                    if (isOpen) {
+                        nextTick(() => initLocationMap());
+                    } else {
+                        cleanupLocationMap();
+                    }
+                });
+
+                watch(selectedLocation, () => {
+                    if (showLocationModal.value) {
+                        nextTick(() => initLocationMap());
+                    }
+                });
+
                 onMounted(async () => {
                     initSession();
                     initLanguage();
@@ -1117,14 +1262,15 @@
                     showAuthModal, authPassword, authMode, editingCommentId, commentEditDraft, commentEditPassword, deletingCommentId, commentDeletePassword,
                     isChatOpen, chatInput, chatHistory, chatBox,
                     sessionId, showSessionModal, locationsLoading,
-                    language, navigateTo, selectCategory, getActiveCategoryName,
+                    showLocationModal, selectedLocation, mapContainer,
+                    language, navigateTo, selectCategory, openLocationModal, closeLocationModal, getActiveCategoryName,
                     getActiveCategoryItems, viewPostDetail, triggerSearch,
                     filteredPosts, cancelPostForm, submitPost, submitComment,
                     openAuthModal, closeAuthModal, submitAuthPassword,
                     startEditComment, cancelCommentEdit, saveCommentEdit,
                     startDeleteComment, cancelCommentDelete, confirmDeleteComment,
                     clearChatHistory, sendChatMessage, regenerateSession,
-                    t, setLanguage, getCategoryName
+                    t, setLanguage, getCategoryName, hasLocationCoordinates
                 };
             }
         }).mount('#app');
