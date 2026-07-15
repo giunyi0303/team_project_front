@@ -1116,8 +1116,8 @@
                             id: item.id,
                             title: item.title,
                             subTag: item.category,
-                            location: item.address || '주소 정보 없음',
-                            desc: item.address_detail || item.telephone || '한국관광공사 TourAPI 제공 데이터',
+                            location: item.address + ' ' + item.address_detail || '주소 정보 없음',
+                            desc: item.telephone || '',
                             image: item.image_url || item.thumbnail_url,
                             longitude: item.longitude,
                             latitude: item.latitude
