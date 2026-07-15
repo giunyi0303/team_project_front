@@ -182,9 +182,16 @@
                     </button>
                 </div>
 
-                <!-- 검색창 -->
-                <div class="bg-white border border-gray-200 rounded-2xl p-4 flex gap-2">
+                <!-- 검색 및 정렬 -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-2">
                     <input v-model="searchQuery" @keyup.enter.prevent="triggerSearch" type="text" :placeholder="t('search_placeholder')" class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+
+                    <select v-model="sortType" class="w-full sm:w-36 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="date">{{ t('sort_date') }}</option>
+                        <option value="views">{{ t('sort_views') }}</option>
+                        <option value="comments">{{ t('sort_comments') }}</option>
+                    </select>
+
                     <button @click="triggerSearch" class="bg-gray-900 hover:bg-black text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors">
                         {{ t('search_button') }}
                     </button>
@@ -547,6 +554,7 @@
                 const currentView = ref('home');
                 const searchQuery = ref('');
                 const activeSearch = ref('');
+                const sortType = ref('date');
                 const language = ref('ko');
 
                 const translations = {
@@ -572,6 +580,9 @@
                         create_post: '+ 새 글 작성',
                         search_placeholder: '검색어를 입력하세요 (제목, 내용)',
                         search_button: '검색',
+                        sort_date: '📅 날짜순',
+                        sort_views: '👀 조회순',
+                        sort_comments: '💬 답글순',
                         table_no: '번호',
                         table_title: '제목',
                         table_author: '작성자',
@@ -647,6 +658,9 @@
                         create_post: '+ Create Post',
                         search_placeholder: 'Search by title or content',
                         search_button: 'Search',
+                        sort_date: '📅 Newest',
+                        sort_views: '👀 Most viewed',
+                        sort_comments: '💬 Most replied',
                         table_no: 'No.',
                         table_title: 'Title',
                         table_author: 'Author',
@@ -793,8 +807,21 @@
 
                 const normalizePost = (post) => ({
                     ...post,
+                    comment_count: Number.isFinite(Number(post.comment_count)) ? Number(post.comment_count) : 0,
                     date: post.created_at ? post.created_at.slice(0, 10) : ''
                 });
+
+                const attachRealCommentCounts = async (postList) => {
+                    return Promise.all(postList.map(async (post) => {
+                        try {
+                            const postComments = await request(`${API_BASE_URL}/api/posts/${post.id}/comments`);
+                            return { ...post, comment_count: Array.isArray(postComments) ? postComments.length : 0 };
+                        } catch (error) {
+                            console.error(`게시글 ${post.id} 답글 수 조회 오류:`, error);
+                            return { ...post, comment_count: 0 };
+                        }
+                    }));
+                };
 
                 const resetBoardSearch = () => {
                     searchQuery.value = '';
@@ -960,7 +987,12 @@
                             ? `${API_BASE_URL}/api/posts?keyword=${encodeURIComponent(keyword)}`
                             : `${API_BASE_URL}/api/posts`;
                         const data = await request(url);
-                        posts.value = data.map(normalizePost);
+                        const normalizedPosts = data.map(normalizePost);
+                        posts.value = await attachRealCommentCounts(normalizedPosts);
+
+                        if (currentView.value === 'post-detail' && currentPost.value?.id) {
+                            await refreshPostState(currentPost.value.id);
+                        }
                     } catch (error) {
                         console.error(error);
                         alert('게시글을 불러오지 못했습니다.');
@@ -977,12 +1009,36 @@
                     }
                 };
 
+                const refreshPostState = async (postId) => {
+                    try {
+                        const [postData, commentsData] = await Promise.all([
+                            request(`${API_BASE_URL}/api/posts/${postId}`),
+                            request(`${API_BASE_URL}/api/posts/${postId}/comments`)
+                        ]);
+
+                        const normalizedPost = {
+                            ...normalizePost(postData),
+                            comment_count: Array.isArray(commentsData) ? commentsData.length : 0
+                        };
+                        comments.value = Array.isArray(commentsData) ? commentsData : [];
+
+                        if (currentPost.value?.id === postId) {
+                            currentPost.value = normalizedPost;
+                        }
+
+                        posts.value = posts.value.map((post) => (
+                            post.id === postId ? { ...post, ...normalizedPost } : post
+                        ));
+                    } catch (error) {
+                        console.error(error);
+                        await loadComments(postId);
+                    }
+                };
+
                 const viewPostDetail = async (id) => {
                     try {
                         const data = await request(`${API_BASE_URL}/api/posts/${id}`);
 
-                        // 게시글 본문을 먼저 화면에 표시한 뒤 댓글을 불러옵니다.
-                        // 댓글 API에 문제가 생겨도 상세 화면 자체는 정상적으로 열립니다.
                         currentPost.value = normalizePost(data);
                         comments.value = [];
                         currentView.value = 'post-detail';
@@ -990,7 +1046,7 @@
 
                         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-                        await loadComments(id);
+                        await refreshPostState(id);
                     } catch (error) {
                         console.error('게시글 상세 조회 오류:', error);
                         alert(`게시글을 열지 못했습니다: ${error.message}`);
@@ -1013,11 +1069,7 @@
 
                         commentInput.value = '';
                         commentPassword.value = '';
-                        await Promise.all([loadComments(postId), loadPosts()]);
-                        const refreshedPost = posts.value.find(post => post.id === postId);
-                        if (refreshedPost && currentPost.value?.id === postId) {
-                            currentPost.value.comment_count = refreshedPost.comment_count || comments.value.length;
-                        }
+                        await refreshPostState(postId);
                         sessionStorage.setItem('localhub_current_post_id', String(postId));
                     } catch (error) {
                         console.error(error);
@@ -1058,7 +1110,7 @@
                         });
 
                         cancelCommentEdit();
-                        await Promise.all([loadComments(postId), loadPosts()]);
+                        await refreshPostState(postId);
                     } catch (error) {
                         alert(error.message || '답글 수정에 실패했습니다.');
                     }
@@ -1093,11 +1145,7 @@
                         });
 
                         cancelCommentDelete();
-                        await Promise.all([loadComments(postId), loadPosts()]);
-                        const refreshedPost = posts.value.find(post => post.id === postId);
-                        if (refreshedPost && currentPost.value?.id === postId) {
-                            currentPost.value.comment_count = refreshedPost.comment_count || comments.value.length;
-                        }
+                        await refreshPostState(postId);
                     } catch (error) {
                         alert(error.message || '답글 삭제에 실패했습니다.');
                     }
@@ -1109,12 +1157,29 @@
                     await loadPosts(keyword);
                 };
 
-                const filteredPosts = computed(() =>
-                    posts.value.map((post, index) => ({
+                const filteredPosts = computed(() => {
+                    const sortedPosts = [...posts.value].sort((a, b) => {
+                        if (sortType.value === 'views') {
+                            const viewDifference = Number(b.views || 0) - Number(a.views || 0);
+                            return viewDifference !== 0 ? viewDifference : Number(b.id || 0) - Number(a.id || 0);
+                        }
+
+                        if (sortType.value === 'comments') {
+                            const commentDifference = Number(b.comment_count || 0) - Number(a.comment_count || 0);
+                            return commentDifference !== 0 ? commentDifference : Number(b.id || 0) - Number(a.id || 0);
+                        }
+
+                        const aDate = new Date(a.created_at || a.date || 0).getTime();
+                        const bDate = new Date(b.created_at || b.date || 0).getTime();
+                        const dateDifference = bDate - aDate;
+                        return dateDifference !== 0 ? dateDifference : Number(b.id || 0) - Number(a.id || 0);
+                    });
+
+                    return sortedPosts.map((post, index) => ({
                         ...post,
                         displayNo: index + 1
-                    }))
-                );
+                    }));
+                });
 
                 const cancelPostForm = () => {
                     postForm.value = { title: '', content: '', password: '' };
@@ -1257,7 +1322,7 @@
                 });
 
                 return {
-                    currentView, searchQuery, infoCategories, activeCategory,
+                    currentView, searchQuery, sortType, infoCategories, activeCategory,
                     posts, currentPost, comments, commentInput, commentPassword, commentSubmitting, postForm,
                     showAuthModal, authPassword, authMode, editingCommentId, commentEditDraft, commentEditPassword, deletingCommentId, commentDeletePassword,
                     isChatOpen, chatInput, chatHistory, chatBox,

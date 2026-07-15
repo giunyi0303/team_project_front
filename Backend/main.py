@@ -348,6 +348,7 @@ def delete_comment(
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if post is not None:
         db.delete(comment)
+        db.flush()
         post.comment_count = (
             db.query(func.count(models.Comment.id))
             .filter(models.Comment.post_id == post_id)
