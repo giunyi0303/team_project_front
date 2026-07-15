@@ -24,6 +24,26 @@ class PostResponse(BaseModel):
     title: str
     content: str
     views: int
+    comment_count: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CommentCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=1000)
+    password: str = Field(min_length=1, max_length=100)
+
+
+class CommentUpdate(BaseModel):
+    content: str = Field(min_length=1, max_length=1000)
+    password: str = Field(min_length=1, max_length=100)
+
+
+class CommentResponse(BaseModel):
+    id: int
+    post_id: int
+    content: str
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

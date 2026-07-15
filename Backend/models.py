@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Float, Integer, String, Text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
 
 from database import Base
 
@@ -13,7 +14,22 @@ class Post(Base):
     content = Column(Text, nullable=False)
     password = Column(String(100), nullable=False)
     views = Column(Integer, nullable=False, default=0)
+    comment_count = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, default=datetime.now)
+
+    comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan")
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    password = Column(String(100), nullable=False, default="")
+    created_at = Column(DateTime, nullable=False, default=datetime.now)
+
+    post = relationship("Post", back_populates="comments")
 
 
 class Location(Base):

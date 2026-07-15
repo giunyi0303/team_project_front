@@ -99,6 +99,99 @@
                     </div>
                 </div>
 
+
+                <!-- 부산 현재 날씨 및 7일 예보 -->
+                <section class="space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+                        <div>
+                            <h2 class="text-xl font-black text-gray-900">{{ t('weather_title') }}</h2>
+                            <p class="text-xs text-gray-500 mt-1">{{ t('weather_desc') }}</p>
+                        </div>
+                        <button type="button" @click="loadWeather" :disabled="weatherLoading"
+                            class="self-start sm:self-auto border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 text-gray-700 font-bold px-3 py-2 rounded-xl text-xs transition-colors">
+                            {{ weatherLoading ? t('weather_loading') : t('weather_refresh') }}
+                        </button>
+                    </div>
+
+                    <div v-if="weatherLoading"
+                        class="bg-white border border-gray-200 rounded-2xl p-8 text-center text-sm text-gray-400 shadow-sm">
+                        {{ t('weather_loading') }}
+                    </div>
+
+                    <div v-else-if="weatherError"
+                        class="bg-red-50 border border-red-200 rounded-2xl p-5 text-sm text-red-600">
+                        <p class="font-bold">{{ t('weather_error_title') }}</p>
+                        <p class="text-xs mt-1">{{ weatherError }}</p>
+                    </div>
+
+                    <div v-else-if="currentWeather && weeklyWeather.length"
+                        class="grid grid-cols-1 xl:grid-cols-[280px_1fr] gap-4">
+                        <article class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 to-indigo-700 text-white p-6 shadow-lg">
+                            <div class="absolute -right-12 -top-12 w-40 h-40 rounded-full bg-white/10"></div>
+                            <div class="relative">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-xs font-bold text-sky-100">{{ t('weather_current') }}</p>
+                                        <h3 class="text-lg font-black mt-1">부산광역시</h3>
+                                        <p class="text-[11px] text-sky-100 mt-1">{{ formatWeatherTime(currentWeather.time) }}</p>
+                                    </div>
+                                    <span class="text-5xl" aria-hidden="true">{{ getWeatherIcon(currentWeather.weather_code, currentWeather.is_day) }}</span>
+                                </div>
+
+                                <div class="mt-6">
+                                    <div class="flex items-end gap-2">
+                                        <strong class="text-5xl font-black leading-none">{{ Math.round(currentWeather.temperature_2m) }}°</strong>
+                                        <span class="text-sm text-sky-100 pb-1">{{ getWeatherLabel(currentWeather.weather_code) }}</span>
+                                    </div>
+                                    <p class="text-xs text-sky-100 mt-2">
+                                        {{ t('weather_feels_like') }} {{ Math.round(currentWeather.apparent_temperature) }}°
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 mt-6">
+                                    <div class="bg-white/10 rounded-xl p-3">
+                                        <p class="text-[10px] text-sky-100">{{ t('weather_humidity') }}</p>
+                                        <p class="text-sm font-black mt-1">{{ currentWeather.relative_humidity_2m }}%</p>
+                                    </div>
+                                    <div class="bg-white/10 rounded-xl p-3">
+                                        <p class="text-[10px] text-sky-100">{{ t('weather_wind') }}</p>
+                                        <p class="text-sm font-black mt-1">{{ Math.round(currentWeather.wind_speed_10m) }} km/h</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <div class="bg-white border border-gray-200 rounded-3xl p-4 sm:p-5 shadow-sm overflow-hidden">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-black text-gray-900">{{ t('weather_weekly') }}</h3>
+                                <span class="text-[10px] text-gray-400">{{ t('weather_source') }}</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                                <article v-for="(day, index) in weeklyWeather" :key="day.date"
+                                    class="rounded-2xl border p-3 text-center transition-colors"
+                                    :class="index === 0 ? 'border-indigo-200 bg-indigo-50' : 'border-gray-100 bg-gray-50'">
+                                    <p class="text-xs font-bold" :class="index === 0 ? 'text-indigo-700' : 'text-gray-700'">
+                                        {{ formatWeatherDay(day.date, index) }}
+                                    </p>
+                                    <p class="text-[10px] text-gray-400 mt-0.5">{{ formatWeatherDate(day.date) }}</p>
+                                    <div class="text-3xl my-3" aria-hidden="true">{{ getWeatherIcon(day.weather_code, 1) }}</div>
+                                    <p class="text-[11px] font-semibold text-gray-600 min-h-[32px]">{{ getWeatherLabel(day.weather_code) }}</p>
+                                    <div class="flex justify-center gap-1 text-xs font-black mt-2">
+                                        <span class="text-red-500">{{ Math.round(day.max_temperature) }}°</span>
+                                        <span class="text-gray-300">/</span>
+                                        <span class="text-blue-500">{{ Math.round(day.min_temperature) }}°</span>
+                                    </div>
+                                    <p class="text-[10px] text-sky-600 font-bold mt-2">
+                                        💧 {{ day.precipitation_probability }}%
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
                 <!-- 카테고리 바로가기 퀵 메뉴 -->
                 <div>
                     <h2 class="text-lg font-bold text-gray-900 mb-4">{{ t('quick_menu_title') }}</h2>
@@ -157,9 +250,9 @@
                                     <span class="font-bold text-indigo-500">No. {{ post.id }}</span>
                                     <span>{{ post.date }}</span>
                                 </div>
-                                <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                                        <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
                                     <span>{{ t('views_label', { count: post.views || 0 }) }}</span>
-                                    <span>{{ t('anonymous') }}</span>
+                                    <span>{{ t('reply_count_label', { count: post.comment_count || 0 }) }}</span>
                                 </div>
                                 <h3 class="font-semibold text-sm text-gray-800 line-clamp-1">{{ post.title }}</h3>
                                 <p class="text-xs text-gray-500 line-clamp-1 mt-0.5">{{ post.content }}</p>
@@ -182,9 +275,16 @@
                     </button>
                 </div>
 
-                <!-- 검색창 -->
-                <div class="bg-white border border-gray-200 rounded-2xl p-4 flex gap-2">
+                <!-- 검색 및 정렬 -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-2">
                     <input v-model="searchQuery" @keyup.enter.prevent="triggerSearch" type="text" :placeholder="t('search_placeholder')" class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+
+                    <select v-model="sortType" class="w-full sm:w-36 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2.5 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="date">{{ t('sort_date') }}</option>
+                        <option value="views">{{ t('sort_views') }}</option>
+                        <option value="comments">{{ t('sort_comments') }}</option>
+                    </select>
+
                     <button @click="triggerSearch" class="bg-gray-900 hover:bg-black text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-colors">
                         {{ t('search_button') }}
                     </button>
@@ -206,13 +306,14 @@
                                 <td colspan="4" class="py-8 text-center text-gray-400">{{ t('empty_results') }}</td>
                             </tr>
                             <tr v-for="post in filteredPosts" :key="post.id" @click="viewPostDetail(post.id)" class="hover:bg-indigo-50/20 cursor-pointer transition-all">
-                                <td class="py-4 px-6 text-gray-400 font-bold"># {{ post.id }}</td>
+                                <td class="py-4 px-6 text-gray-400 font-bold"># {{ post.displayNo }}</td>
                                 <td class="py-4 px-6 font-semibold text-gray-900 hover:text-indigo-600">{{ post.title }}</td>
                                 <td class="py-4 px-6 text-center text-gray-500">{{ t('anonymous') }}</td>
                                 <td class="py-4 px-6 text-right text-gray-400">
                                     <div class="flex flex-col items-end gap-1">
                                         <span>{{ post.date }}</span>
                                         <span class="text-[11px] text-indigo-600 font-semibold">{{ t('views_label', { count: post.views || 0 }) }}</span>
+                                        <span class="text-[11px] text-indigo-600 font-semibold">{{ t('reply_count_label', { count: post.comment_count || 0 }) }}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -241,6 +342,73 @@
                     <!-- 게시물 본문 내용 -->
                     <div class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap min-h-[150px]">
                         {{ currentPost.content }}
+                    </div>
+
+                    <!-- 답글 영역 -->
+                    <div class="border-t border-gray-100 pt-5 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-gray-900">{{ t('comments_title') }}</h3>
+                            <span class="text-xs text-gray-500">{{ t('reply_count_label', { count: comments.length }) }}</span>
+                        </div>
+
+                        <form @submit.stop.prevent="submitComment" class="flex flex-col gap-2">
+                            <textarea v-model="commentInput" @keydown.ctrl.enter.prevent="submitComment" rows="3" :placeholder="t('comment_placeholder')" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required></textarea>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <input v-model="commentPassword" type="password" :placeholder="t('comment_password_placeholder')" class="w-full sm:w-48 bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                                <button type="submit" :disabled="commentSubmitting" class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors self-start">
+                                    {{ commentSubmitting ? t('comment_submitting') : t('comment_submit') }}
+                                </button>
+                            </div>
+                        </form>
+
+                        <div v-if="comments.length === 0" class="text-xs text-gray-400">
+                            {{ t('no_comments') }}
+                        </div>
+                        <div v-for="comment in comments" :key="comment.id" class="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                            <div class="flex items-center justify-between text-[11px] text-gray-400 mb-2">
+                                <span>{{ t('anonymous') }}</span>
+                                <span>{{ comment.created_at ? comment.created_at.slice(0, 10) : '' }}</span>
+                            </div>
+                            <p v-if="editingCommentId !== comment.id && deletingCommentId !== comment.id" class="text-sm text-gray-700 whitespace-pre-wrap">{{ comment.content }}</p>
+
+                            <div v-if="editingCommentId === comment.id" class="mt-3 space-y-2">
+                                <textarea v-model="commentEditDraft" rows="3" :placeholder="t('comment_edit_placeholder')" class="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <input v-model="commentEditPassword" type="password" :placeholder="t('comment_password_placeholder')" class="w-full sm:w-48 bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                                    <div class="flex gap-2">
+                                        <button @click="saveCommentEdit(comment.id)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3 py-1.5 rounded-lg text-[11px] transition-colors">
+                                            {{ t('comment_save') }}
+                                        </button>
+                                        <button @click="cancelCommentEdit" class="border border-gray-300 hover:bg-white text-gray-700 font-semibold px-3 py-1.5 rounded-lg text-[11px] transition-colors">
+                                            {{ t('comment_cancel') }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-else-if="deletingCommentId === comment.id" class="mt-3 space-y-2">
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <input v-model="commentDeletePassword" type="password" :placeholder="t('comment_password_placeholder')" class="w-full sm:w-48 bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                                    <div class="flex gap-2">
+                                        <button @click="confirmDeleteComment(comment.id)" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-3 py-1.5 rounded-lg text-[11px] transition-colors">
+                                            {{ t('comment_delete_confirm') }}
+                                        </button>
+                                        <button @click="cancelCommentDelete" class="border border-gray-300 hover:bg-white text-gray-700 font-semibold px-3 py-1.5 rounded-lg text-[11px] transition-colors">
+                                            {{ t('comment_cancel') }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-else class="mt-3 flex justify-end gap-2">
+                                <button @click="startEditComment(comment)" class="border border-gray-300 hover:bg-white text-gray-700 font-semibold px-3 py-1.5 rounded-lg text-[11px] transition-colors">
+                                    {{ t('comment_edit') }}
+                                </button>
+                                <button @click="startDeleteComment(comment.id)" class="bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-3 py-1.5 rounded-lg text-[11px] transition-colors">
+                                    {{ t('comment_delete') }}
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 하단 액션 버튼 그룹 (수정/삭제) -->
@@ -472,12 +640,19 @@
 
         createApp({
             setup() {
-                const API_BASE_URL = 'http://127.0.0.1:8000';
+                const API_BASE_URL = window.location.protocol.startsWith('http') && window.location.port === '8000'
+                    ? window.location.origin
+                    : 'http://127.0.0.1:8000';
 
                 const currentView = ref('home');
                 const searchQuery = ref('');
                 const activeSearch = ref('');
+                const sortType = ref('date');
                 const language = ref('ko');
+                const currentWeather = ref(null);
+                const weeklyWeather = ref([]);
+                const weatherLoading = ref(false);
+                const weatherError = ref('');
 
                 const translations = {
                     ko: {
@@ -487,6 +662,18 @@
                         hero_badge: '권역 정보 서비스',
                         hero_title: '선정 권역: 부산(Busan)의 지역 정보를 한눈에 만나보세요',
                         hero_desc: 'LocalHub는 부산의 공공데이터를 기반으로 한 신뢰할 수 있는 지역 정보 제공 플랫폼입니다. 관광지, 문화시설, 레포츠, 숙박 정보는 물론, 주민들과 자유롭게 소통하는 익명 게시판을 지금 이용해 보세요!',
+                        weather_title: '부산 날씨',
+                        weather_desc: '부산의 현재 날씨와 앞으로 7일간의 예보입니다.',
+                        weather_current: '현재 날씨',
+                        weather_weekly: '7일 예보',
+                        weather_loading: '날씨 정보를 불러오는 중...',
+                        weather_refresh: '새로고침',
+                        weather_error_title: '날씨 정보를 불러오지 못했습니다.',
+                        weather_feels_like: '체감',
+                        weather_humidity: '습도',
+                        weather_wind: '풍속',
+                        weather_source: 'Open-Meteo 제공',
+                        weather_today: '오늘',
                         quick_menu_title: '카테고리 정보 바로가기',
                         public_data_title: '공공 데이터 목록',
                         public_data_count: '제공 데이터 개수: {count}개',
@@ -502,6 +689,9 @@
                         create_post: '+ 새 글 작성',
                         search_placeholder: '검색어를 입력하세요 (제목, 내용)',
                         search_button: '검색',
+                        sort_date: '📅 날짜순',
+                        sort_views: '👀 조회순',
+                        sort_comments: '💬 답글순',
                         table_no: '번호',
                         table_title: '제목',
                         table_author: '작성자',
@@ -539,6 +729,19 @@
                         chat_send: '전송',
                         chat_greeting: '안녕하세요! 부산 권역의 관광지 추천, 축제 일정, 게시글 검색 등 원하시는 정보를 자유롭게 물어보세요. (대화 히스토리가 익명 식별 코드로 안전하게 유지됩니다.)',
                         views_label: '조회 {count}',
+                        reply_count_label: '답글 {count}',
+                        comments_title: '답글',
+                        comment_placeholder: '답글을 입력하세요',
+                        comment_password_placeholder: '답글 비밀번호',
+                        comment_submit: '등록',
+                        comment_submitting: '저장 중...',
+                        comment_edit: '수정',
+                        comment_delete: '삭제',
+                        comment_save: '저장',
+                        comment_cancel: '취소',
+                        comment_delete_confirm: '삭제',
+                        comment_edit_placeholder: '수정할 내용을 입력하세요',
+                        no_comments: '아직 등록된 답글이 없습니다.',
                         footer_note1: '이 서비스는 한국관광공사 Tour API(TourAPI 4.0)의 데이터를 활용하였습니다.',
                         footer_note2: '출처: 한국관광공사 · 라이선스: 공공누리 제3유형'
                     },
@@ -549,6 +752,18 @@
                         hero_badge: 'Regional Information Service',
                         hero_title: 'Discover Busan (Busan) regional information at a glance',
                         hero_desc: 'LocalHub is a reliable local information platform based on Busan public data. Explore tourist sites, cultural facilities, leisure activities, lodging information, and join an anonymous community board to share ideas with residents.',
+                        weather_title: 'Busan Weather',
+                        weather_desc: 'Current conditions and the next seven days in Busan.',
+                        weather_current: 'Current weather',
+                        weather_weekly: '7-day forecast',
+                        weather_loading: 'Loading weather...',
+                        weather_refresh: 'Refresh',
+                        weather_error_title: 'Unable to load weather data.',
+                        weather_feels_like: 'Feels like',
+                        weather_humidity: 'Humidity',
+                        weather_wind: 'Wind',
+                        weather_source: 'Powered by Open-Meteo',
+                        weather_today: 'Today',
                         quick_menu_title: 'Quick access to category information',
                         public_data_title: 'public data list',
                         public_data_count: 'Available items: {count}',
@@ -564,6 +779,9 @@
                         create_post: '+ Create Post',
                         search_placeholder: 'Search by title or content',
                         search_button: 'Search',
+                        sort_date: '📅 Newest',
+                        sort_views: '👀 Most viewed',
+                        sort_comments: '💬 Most replied',
                         table_no: 'No.',
                         table_title: 'Title',
                         table_author: 'Author',
@@ -601,6 +819,19 @@
                         chat_send: 'Send',
                         chat_greeting: 'Hello! Feel free to ask about Busan attractions, festival schedules, or community post search. (Your chat history is stored anonymously with an ID.)',
                         views_label: 'Views {count}',
+                        reply_count_label: 'Replies {count}',
+                        comments_title: 'Replies',
+                        comment_placeholder: 'Write a reply',
+                        comment_password_placeholder: 'Reply password',
+                        comment_submit: 'Submit',
+                        comment_submitting: 'Saving...',
+                        comment_edit: 'Edit',
+                        comment_delete: 'Delete',
+                        comment_save: 'Save',
+                        comment_cancel: 'Cancel',
+                        comment_delete_confirm: 'Delete',
+                        comment_edit_placeholder: 'Enter updated content',
+                        no_comments: 'No replies yet.',
                         footer_note1: 'This service uses the Korea Tourism Organization Tour API (TourAPI 4.0).',
                         footer_note2: 'Source: Korea Tourism Organization · License: Public Nuri Type 3'
                     }
@@ -662,11 +893,20 @@
 
                 const posts = ref([]);
                 const currentPost = ref(null);
+                const comments = ref([]);
+                const commentInput = ref('');
+                const commentPassword = ref('');
+                const commentSubmitting = ref(false);
                 const postForm = ref({ title: '', content: '', password: '' });
 
                 const showAuthModal = ref(false);
                 const authMode = ref('');
                 const authPassword = ref('');
+                const editingCommentId = ref(null);
+                const commentEditDraft = ref('');
+                const commentEditPassword = ref('');
+                const deletingCommentId = ref(null);
+                const commentDeletePassword = ref('');
 
                 const isChatOpen = ref(false);
                 const chatInput = ref('');
@@ -686,10 +926,135 @@
                     return data;
                 };
 
+
+                const WEATHER_API_URL = [
+                    'https://api.open-meteo.com/v1/forecast',
+                    '?latitude=35.1796',
+                    '&longitude=129.0756',
+                    '&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m',
+                    '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+                    '&timezone=Asia%2FSeoul',
+                    '&forecast_days=7'
+                ].join('');
+
+                const weatherCodeMap = {
+                    0: { ko: '맑음', en: 'Clear', day: '☀️', night: '🌙' },
+                    1: { ko: '대체로 맑음', en: 'Mostly clear', day: '🌤️', night: '🌙' },
+                    2: { ko: '구름 조금', en: 'Partly cloudy', day: '⛅', night: '☁️' },
+                    3: { ko: '흐림', en: 'Overcast', day: '☁️', night: '☁️' },
+                    45: { ko: '안개', en: 'Fog', day: '🌫️', night: '🌫️' },
+                    48: { ko: '서리 안개', en: 'Rime fog', day: '🌫️', night: '🌫️' },
+                    51: { ko: '약한 이슬비', en: 'Light drizzle', day: '🌦️', night: '🌧️' },
+                    53: { ko: '이슬비', en: 'Drizzle', day: '🌦️', night: '🌧️' },
+                    55: { ko: '강한 이슬비', en: 'Heavy drizzle', day: '🌧️', night: '🌧️' },
+                    61: { ko: '약한 비', en: 'Light rain', day: '🌦️', night: '🌧️' },
+                    63: { ko: '비', en: 'Rain', day: '🌧️', night: '🌧️' },
+                    65: { ko: '강한 비', en: 'Heavy rain', day: '🌧️', night: '🌧️' },
+                    71: { ko: '약한 눈', en: 'Light snow', day: '🌨️', night: '🌨️' },
+                    73: { ko: '눈', en: 'Snow', day: '❄️', night: '❄️' },
+                    75: { ko: '강한 눈', en: 'Heavy snow', day: '❄️', night: '❄️' },
+                    80: { ko: '약한 소나기', en: 'Light showers', day: '🌦️', night: '🌧️' },
+                    81: { ko: '소나기', en: 'Showers', day: '🌧️', night: '🌧️' },
+                    82: { ko: '강한 소나기', en: 'Heavy showers', day: '⛈️', night: '⛈️' },
+                    95: { ko: '뇌우', en: 'Thunderstorm', day: '⛈️', night: '⛈️' },
+                    96: { ko: '우박을 동반한 뇌우', en: 'Thunderstorm with hail', day: '⛈️', night: '⛈️' },
+                    99: { ko: '강한 우박 뇌우', en: 'Heavy thunderstorm with hail', day: '⛈️', night: '⛈️' }
+                };
+
+                const getWeatherInfo = (code) => weatherCodeMap[Number(code)] || {
+                    ko: '날씨 정보 없음',
+                    en: 'Unknown',
+                    day: '🌡️',
+                    night: '🌡️'
+                };
+
+                const getWeatherLabel = (code) => {
+                    const info = getWeatherInfo(code);
+                    return language.value === 'en' ? info.en : info.ko;
+                };
+
+                const getWeatherIcon = (code, isDay = 1) => {
+                    const info = getWeatherInfo(code);
+                    return Number(isDay) === 1 ? info.day : info.night;
+                };
+
+                const formatWeatherDay = (dateString, index) => {
+                    if (index === 0) return t('weather_today');
+                    const date = new Date(`${dateString}T00:00:00`);
+                    return new Intl.DateTimeFormat(language.value === 'en' ? 'en-US' : 'ko-KR', {
+                        weekday: 'short'
+                    }).format(date);
+                };
+
+                const formatWeatherDate = (dateString) => {
+                    const date = new Date(`${dateString}T00:00:00`);
+                    return new Intl.DateTimeFormat(language.value === 'en' ? 'en-US' : 'ko-KR', {
+                        month: 'numeric',
+                        day: 'numeric'
+                    }).format(date);
+                };
+
+                const formatWeatherTime = (dateString) => {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    return new Intl.DateTimeFormat(language.value === 'en' ? 'en-US' : 'ko-KR', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }).format(date);
+                };
+
+                const loadWeather = async () => {
+                    weatherLoading.value = true;
+                    weatherError.value = '';
+
+                    try {
+                        const response = await fetch(WEATHER_API_URL);
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                        const data = await response.json();
+                        if (!data.current || !data.daily || !Array.isArray(data.daily.time)) {
+                            throw new Error('Invalid weather response');
+                        }
+
+                        currentWeather.value = data.current;
+                        weeklyWeather.value = data.daily.time.map((date, index) => ({
+                            date,
+                            weather_code: data.daily.weather_code?.[index] ?? 0,
+                            max_temperature: data.daily.temperature_2m_max?.[index] ?? 0,
+                            min_temperature: data.daily.temperature_2m_min?.[index] ?? 0,
+                            precipitation_probability: data.daily.precipitation_probability_max?.[index] ?? 0
+                        }));
+                    } catch (error) {
+                        console.error('날씨 조회 오류:', error);
+                        currentWeather.value = null;
+                        weeklyWeather.value = [];
+                        weatherError.value = language.value === 'en'
+                            ? 'Please check your internet connection and try again.'
+                            : '인터넷 연결 상태를 확인한 뒤 다시 시도해 주세요.';
+                    } finally {
+                        weatherLoading.value = false;
+                    }
+                };
+
                 const normalizePost = (post) => ({
                     ...post,
+                    comment_count: Number.isFinite(Number(post.comment_count)) ? Number(post.comment_count) : 0,
                     date: post.created_at ? post.created_at.slice(0, 10) : ''
                 });
+
+                const attachRealCommentCounts = async (postList) => {
+                    return Promise.all(postList.map(async (post) => {
+                        try {
+                            const postComments = await request(`${API_BASE_URL}/api/posts/${post.id}/comments`);
+                            return { ...post, comment_count: Array.isArray(postComments) ? postComments.length : 0 };
+                        } catch (error) {
+                            console.error(`게시글 ${post.id} 답글 수 조회 오류:`, error);
+                            return { ...post, comment_count: 0 };
+                        }
+                    }));
+                };
 
                 const resetBoardSearch = () => {
                     searchQuery.value = '';
@@ -855,20 +1220,167 @@
                             ? `${API_BASE_URL}/api/posts?keyword=${encodeURIComponent(keyword)}`
                             : `${API_BASE_URL}/api/posts`;
                         const data = await request(url);
-                        posts.value = data.map(normalizePost);
+                        const normalizedPosts = data.map(normalizePost);
+                        posts.value = await attachRealCommentCounts(normalizedPosts);
+
+                        if (currentView.value === 'post-detail' && currentPost.value?.id) {
+                            await refreshPostState(currentPost.value.id);
+                        }
                     } catch (error) {
                         console.error(error);
                         alert('게시글을 불러오지 못했습니다.');
                     }
                 };
 
+                const loadComments = async (postId) => {
+                    try {
+                        const data = await request(`${API_BASE_URL}/api/posts/${postId}/comments`);
+                        comments.value = data;
+                    } catch (error) {
+                        console.error(error);
+                        comments.value = [];
+                    }
+                };
+
+                const refreshPostState = async (postId) => {
+                    try {
+                        const [postData, commentsData] = await Promise.all([
+                            request(`${API_BASE_URL}/api/posts/${postId}`),
+                            request(`${API_BASE_URL}/api/posts/${postId}/comments`)
+                        ]);
+
+                        const normalizedPost = {
+                            ...normalizePost(postData),
+                            comment_count: Array.isArray(commentsData) ? commentsData.length : 0
+                        };
+                        comments.value = Array.isArray(commentsData) ? commentsData : [];
+
+                        if (currentPost.value?.id === postId) {
+                            currentPost.value = normalizedPost;
+                        }
+
+                        posts.value = posts.value.map((post) => (
+                            post.id === postId ? { ...post, ...normalizedPost } : post
+                        ));
+                    } catch (error) {
+                        console.error(error);
+                        await loadComments(postId);
+                    }
+                };
+
                 const viewPostDetail = async (id) => {
                     try {
                         const data = await request(`${API_BASE_URL}/api/posts/${id}`);
+
                         currentPost.value = normalizePost(data);
+                        comments.value = [];
                         currentView.value = 'post-detail';
+                        sessionStorage.setItem('localhub_current_post_id', String(id));
+
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                        await refreshPostState(id);
                     } catch (error) {
-                        alert(error.message);
+                        console.error('게시글 상세 조회 오류:', error);
+                        alert(`게시글을 열지 못했습니다: ${error.message}`);
+                    }
+                };
+
+                const submitComment = async () => {
+                    const postId = currentPost.value?.id;
+                    const content = commentInput.value.trim();
+                    const password = commentPassword.value.trim();
+                    if (!postId || !content || !password || commentSubmitting.value) return;
+
+                    commentSubmitting.value = true;
+                    try {
+                        await request(`${API_BASE_URL}/api/posts/${postId}/comments`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ content, password })
+                        });
+
+                        commentInput.value = '';
+                        commentPassword.value = '';
+                        await refreshPostState(postId);
+                        sessionStorage.setItem('localhub_current_post_id', String(postId));
+                    } catch (error) {
+                        console.error(error);
+                        alert(error.message || '답글 저장에 실패했습니다.');
+                    } finally {
+                        commentSubmitting.value = false;
+                    }
+                };
+
+                const startEditComment = (comment) => {
+                    editingCommentId.value = comment.id;
+                    commentEditDraft.value = comment.content;
+                    commentEditPassword.value = '';
+                    deletingCommentId.value = null;
+                    commentDeletePassword.value = '';
+                };
+
+                const cancelCommentEdit = () => {
+                    editingCommentId.value = null;
+                    commentEditDraft.value = '';
+                    commentEditPassword.value = '';
+                };
+
+                const saveCommentEdit = async (commentId) => {
+                    const postId = currentPost.value?.id;
+                    const content = commentEditDraft.value.trim();
+                    const password = commentEditPassword.value.trim();
+                    if (!postId || !content || !password) {
+                        alert('수정할 내용과 비밀번호를 모두 입력해 주세요.');
+                        return;
+                    }
+
+                    try {
+                        await request(`${API_BASE_URL}/api/posts/${postId}/comments/${commentId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ content, password })
+                        });
+
+                        cancelCommentEdit();
+                        await refreshPostState(postId);
+                    } catch (error) {
+                        alert(error.message || '답글 수정에 실패했습니다.');
+                    }
+                };
+
+                const startDeleteComment = (commentId) => {
+                    deletingCommentId.value = commentId;
+                    commentDeletePassword.value = '';
+                    editingCommentId.value = null;
+                    commentEditDraft.value = '';
+                    commentEditPassword.value = '';
+                };
+
+                const cancelCommentDelete = () => {
+                    deletingCommentId.value = null;
+                    commentDeletePassword.value = '';
+                };
+
+                const confirmDeleteComment = async (commentId) => {
+                    const postId = currentPost.value?.id;
+                    const password = commentDeletePassword.value.trim();
+                    if (!postId || !password) {
+                        alert('비밀번호를 입력해 주세요.');
+                        return;
+                    }
+
+                    try {
+                        await request(`${API_BASE_URL}/api/posts/${postId}/comments/${commentId}`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ password })
+                        });
+
+                        cancelCommentDelete();
+                        await refreshPostState(postId);
+                    } catch (error) {
+                        alert(error.message || '답글 삭제에 실패했습니다.');
                     }
                 };
 
@@ -878,7 +1390,29 @@
                     await loadPosts(keyword);
                 };
 
-                const filteredPosts = computed(() => posts.value);
+                const filteredPosts = computed(() => {
+                    const sortedPosts = [...posts.value].sort((a, b) => {
+                        if (sortType.value === 'views') {
+                            const viewDifference = Number(b.views || 0) - Number(a.views || 0);
+                            return viewDifference !== 0 ? viewDifference : Number(b.id || 0) - Number(a.id || 0);
+                        }
+
+                        if (sortType.value === 'comments') {
+                            const commentDifference = Number(b.comment_count || 0) - Number(a.comment_count || 0);
+                            return commentDifference !== 0 ? commentDifference : Number(b.id || 0) - Number(a.id || 0);
+                        }
+
+                        const aDate = new Date(a.created_at || a.date || 0).getTime();
+                        const bDate = new Date(b.created_at || b.date || 0).getTime();
+                        const dateDifference = bDate - aDate;
+                        return dateDifference !== 0 ? dateDifference : Number(b.id || 0) - Number(a.id || 0);
+                    });
+
+                    return sortedPosts.map((post, index) => ({
+                        ...post,
+                        displayNo: index + 1
+                    }));
+                });
 
                 const cancelPostForm = () => {
                     postForm.value = { title: '', content: '', password: '' };
@@ -1015,21 +1549,27 @@
                     initSession();
                     initLanguage();
                     loadChatHistory();
-                    await Promise.all([loadPosts(), loadLocations()]);
+                    await Promise.all([loadPosts(), loadLocations(), loadWeather()]);
+                    const savedPostId = Number(sessionStorage.getItem('localhub_current_post_id'));
+                    if (savedPostId) await viewPostDetail(savedPostId);
                 });
 
                 return {
-                    currentView, searchQuery, infoCategories, activeCategory,
-                    posts, currentPost, postForm,
-                    showAuthModal, authPassword, authMode,
+                    currentView, searchQuery, sortType, infoCategories, activeCategory,
+                    currentWeather, weeklyWeather, weatherLoading, weatherError,
+                    posts, currentPost, comments, commentInput, commentPassword, commentSubmitting, postForm,
+                    showAuthModal, authPassword, authMode, editingCommentId, commentEditDraft, commentEditPassword, deletingCommentId, commentDeletePassword,
                     isChatOpen, chatInput, chatHistory, chatBox,
                     sessionId, showSessionModal, locationsLoading,
                     showLocationModal, selectedLocation, mapContainer,
                     language, navigateTo, selectCategory, openLocationModal, closeLocationModal, getActiveCategoryName,
                     getActiveCategoryItems, viewPostDetail, triggerSearch,
-                    filteredPosts, cancelPostForm, submitPost,
+                    filteredPosts, cancelPostForm, submitPost, submitComment,
                     openAuthModal, closeAuthModal, submitAuthPassword,
+                    startEditComment, cancelCommentEdit, saveCommentEdit,
+                    startDeleteComment, cancelCommentDelete, confirmDeleteComment,
                     clearChatHistory, sendChatMessage, regenerateSession,
+                    loadWeather, getWeatherLabel, getWeatherIcon, formatWeatherDay, formatWeatherDate, formatWeatherTime,
                     t, setLanguage, getCategoryName, hasLocationCoordinates
                 };
             }
