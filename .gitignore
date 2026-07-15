@@ -1,2 +1,4 @@
 Backend/localhub.db
 .env
+Backend/tests/test_delete_post.py
+Backend/test_comments_password.py
