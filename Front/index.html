@@ -37,11 +37,13 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Google Fonts - Pretendard -->
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <style>
         body {
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-            background-color: #FDFBF7; /* 더욱 아늑해진 밀크크림 배경 */
+            background-color: #FDFBF7;
+            /* 더욱 아늑해진 밀크크림 배경 */
         }
 
         [v-cloak] {
@@ -68,14 +70,17 @@
             width: 8px;
             height: 8px;
         }
+
         ::-webkit-scrollbar-track {
             background: #FDFBF7;
             border-radius: 10px;
         }
+
         ::-webkit-scrollbar-thumb {
             background: #E8E2D5;
             border-radius: 10px;
         }
+
         ::-webkit-scrollbar-thumb:hover {
             background: #A78BFA;
         }
@@ -108,11 +113,13 @@
         <!-- ========================================== -->
         <!-- 상단 글로벌 네비게이션 바 -->
         <!-- ========================================== -->
-        <header class="bg-white/90 backdrop-blur-md border-b border-orange-100/30 sticky top-0 z-40 shadow-sm px-4 sm:px-8">
+        <header
+            class="bg-white/90 backdrop-blur-md border-b border-orange-100/30 sticky top-0 z-40 shadow-sm px-4 sm:px-8">
             <div class="max-w-7xl mx-auto h-22 flex items-center justify-between">
                 <!-- 로고 및 서비스명 (감각적인 회전 엠블럼 효과) -->
                 <div @click="navigateTo('home')" class="flex items-center gap-3 cursor-pointer group">
-                    <div class="bg-gradient-to-tr from-violet-600 via-indigo-500 to-sky-400 p-3 rounded-[1.25rem] shadow-md shadow-indigo-100 group-hover:rotate-12 transition-transform duration-300">
+                    <div
+                        class="bg-gradient-to-tr from-violet-600 via-indigo-500 to-sky-400 p-3 rounded-[1.25rem] shadow-md shadow-indigo-100 group-hover:rotate-12 transition-transform duration-300">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="3"
                             viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -123,13 +130,21 @@
                 </div>
 
                 <!-- 네비게이션 링크 (미니멀 알약 버튼 디자인) -->
-                <nav class="hidden md:flex items-center bg-stone-100/70 p-1 rounded-full border border-stone-200/20 text-sm font-bold text-slate-600">
+                <nav
+                    class="flex items-center bg-stone-100/70 p-1 rounded-full border border-stone-200/20 text-sm font-bold text-slate-600">
+
                     <button @click="navigateTo('home')"
-                        :class="currentView === 'home' ? 'bg-white text-indigo-600 shadow-sm px-6 py-2.5 rounded-full' : 'hover:text-indigo-600 px-6 py-2.5 rounded-full transition-all'">{{ t('nav_home')
-                        }}</button>
+                        :class="currentView === 'home' ? 'bg-white text-indigo-600 shadow-sm px-6 py-2.5 rounded-full' : 'hover:text-indigo-600 px-6 py-2.5 rounded-full transition-all'">
+                        <span>🏠</span>
+                        <span class="hidden md:inline ml-1">{{ t('nav_home') }}</span>
+                    </button>
+
                     <button @click="navigateTo('board')"
-                        :class="currentView === 'board' || currentView === 'post-detail' ? 'bg-white text-indigo-600 shadow-sm px-6 py-2.5 rounded-full' : 'hover:text-indigo-600 px-6 py-2.5 rounded-full transition-all'">{{
-                        t('nav_board') }}</button>
+                        :class="currentView === 'board' || currentView === 'post-detail' ? 'bg-white text-indigo-600 shadow-sm px-6 py-2.5 rounded-full' : 'hover:text-indigo-600 px-6 py-2.5 rounded-full transition-all'">
+                        <span>💬</span>
+                        <span class="hidden md:inline ml-1">{{ t('nav_board') }}</span>
+                    </button>
+
                 </nav>
 
                 <!-- 언어 전환 버튼 & 상태 배지 -->
@@ -142,9 +157,6 @@
                             :class="language === 'en' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'"
                             class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all">EN</button>
                     </div>
-                    <span class="bg-indigo-50 border border-indigo-100 text-indigo-800 text-xs font-black px-4 py-2.5 rounded-2xl shadow-sm">
-                        {{ t('region_badge') }}
-                    </span>
                 </div>
             </div>
         </header>
@@ -156,59 +168,72 @@
 
             <!-- ① 홈 화면 (메인 뷰 - 분할 대시보드 모드) -->
             <div v-if="currentView === 'home'" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                
+
                 <!-- [좌측 윙: 고정 컨트롤 덱 (4칸)] -->
-<aside class="lg:col-span-4 lg:sticky lg:top-28 space-y-6">
-    <!-- 감성 날씨 카드 -->
-    <div class="bg-white border-2 border-stone-100 rounded-[2.5rem] p-6 shadow-sm overflow-hidden space-y-5">
-        <div class="flex items-center justify-between gap-2">
-            <h3 class="font-black text-slate-800 tracking-tight flex items-center gap-1.5 truncate">
-                🌤️ {{ t('weather_title') }}
-            </h3>
-            <!-- 애니메이션 제거 및 크기 축소 -->
-        </div>
+                <aside class="lg:col-span-4 lg:sticky lg:top-28 space-y-6">
+                    <!-- 감성 날씨 카드 -->
+                    <div
+                        class="bg-white border-2 border-stone-100 rounded-[2.5rem] p-6 shadow-sm overflow-hidden space-y-5">
+                        <div class="flex items-center justify-between gap-2">
+                            <h3 class="font-black text-slate-800 tracking-tight flex items-center gap-1.5 truncate">
+                                🌤️ {{ t('weather_title') }}
+                            </h3>
+                            <!-- 애니메이션 제거 및 크기 축소 -->
+                        </div>
 
-        <!-- 실시간 핵심 온도 비주얼 -->
-        <div v-if="currentWeather" class="bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 text-white rounded-3xl p-5 relative overflow-hidden">
-            <div class="relative z-10 flex items-center justify-between">
-                <div class="space-y-1">
-                    <span class="text-[10px] font-black tracking-widest text-sky-100/80 uppercase">{{ t('weather_current') }}</span>
-                    <p class="text-2xl font-black">부산광역시</p>
-                    <p class="text-[10px] text-sky-100/70 font-semibold">{{ formatWeatherTime(currentWeather.time) }}</p>
-                </div>
-                <span class="text-5xl filter drop-shadow-md animate-pulse">
-                    {{ getWeatherIcon(currentWeather.weather_code, currentWeather.is_day) }}
-                </span>
-            </div>
+                        <!-- 실시간 핵심 온도 비주얼 -->
+                        <div v-if="currentWeather"
+                            class="bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 text-white rounded-3xl p-5 relative overflow-hidden">
+                            <div class="relative z-10 flex items-center justify-between">
+                                <div class="space-y-1">
+                                    <span class="text-[10px] font-black tracking-widest text-sky-100/80 uppercase">{{
+                                        t('weather_current') }}</span>
+                                    <p class="text-2xl font-black">부산광역시</p>
+                                    <p class="text-[10px] text-sky-100/70 font-semibold">{{
+                                        formatWeatherTime(currentWeather.time) }}</p>
+                                </div>
+                                <span class="text-5xl filter drop-shadow-md animate-pulse">
+                                    {{ getWeatherIcon(currentWeather.weather_code, currentWeather.is_day) }}
+                                </span>
+                            </div>
 
-            <div class="relative z-10 mt-6 flex items-baseline gap-2">
-                <span class="text-5xl font-black tracking-tighter">{{ Math.round(currentWeather.temperature_2m) }}°</span>
-                <span class="text-[11px] font-bold bg-white/20 px-2 py-0.5 rounded-full">{{ getWeatherLabel(currentWeather.weather_code) }}</span>
-            </div>
-        </div>
+                            <div class="relative z-10 mt-6 flex items-baseline gap-2">
+                                <span class="text-5xl font-black tracking-tighter">{{
+                                    Math.round(currentWeather.temperature_2m) }}°</span>
+                                <span class="text-[11px] font-bold bg-white/20 px-2 py-0.5 rounded-full">{{
+                                    getWeatherLabel(currentWeather.weather_code) }}</span>
+                            </div>
+                        </div>
 
-        <!-- 주간 날씨 접이식 아코디언 버튼 -->
-        <div v-if="weeklyWeather && weeklyWeather.length" class="space-y-3">
-            <details class="group bg-stone-50 rounded-2xl overflow-hidden border border-stone-100 transition-all duration-300">
-                <summary class="flex items-center justify-between px-5 py-4 cursor-pointer text-xs font-black text-slate-700 outline-none select-none">
-                    <span>🗓️ {{ t('weather_weekly') }} 서랍 열어보기</span>
-                    <span class="transition-transform duration-300 group-open:rotate-180 text-indigo-500 font-bold">&darr;</span>
-                </summary>
-                <div class="px-3 pb-4 pt-1 divide-y divide-stone-100/80 max-h-[220px] overflow-y-auto">
-                    <div v-for="(day, index) in weeklyWeather" :key="day.date" class="flex items-center justify-between py-2 text-xs font-semibold">
-                        <span class="w-12" :class="index === 0 ? 'text-indigo-600 font-black' : 'text-slate-600'">{{ formatWeatherDay(day.date, index) }}</span>
-                        <span class="text-xl shrink-0">{{ getWeatherIcon(day.weather_code, 1) }}</span>
-                        <span class="text-[10px] text-slate-400 w-16 text-center line-clamp-1">{{ getWeatherLabel(day.weather_code) }}</span>
-                        <span class="text-slate-700 font-black text-right w-14">
-                            <span class="text-rose-500">{{ Math.round(day.max_temperature) }}°</span>
-                            <span class="text-slate-300">/</span>
-                            <span class="text-blue-500">{{ Math.round(day.min_temperature) }}°</span>
-                        </span>
+                        <!-- 주간 날씨 접이식 아코디언 버튼 -->
+                        <div v-if="weeklyWeather && weeklyWeather.length" class="space-y-3">
+                            <details
+                                class="group bg-stone-50 rounded-2xl overflow-hidden border border-stone-100 transition-all duration-300">
+                                <summary
+                                    class="flex items-center justify-between px-5 py-4 cursor-pointer text-xs font-black text-slate-700 outline-none select-none">
+                                    <span>🗓️ {{ t('weather_weekly') }} 서랍 열어보기</span>
+                                    <span
+                                        class="transition-transform duration-300 group-open:rotate-180 text-indigo-500 font-bold">&darr;</span>
+                                </summary>
+                                <div class="px-3 pb-4 pt-1 divide-y divide-stone-100/80 max-h-[220px] overflow-y-auto">
+                                    <div v-for="(day, index) in weeklyWeather" :key="day.date"
+                                        class="flex items-center justify-between py-2 text-xs font-semibold">
+                                        <span class="w-12"
+                                            :class="index === 0 ? 'text-indigo-600 font-black' : 'text-slate-600'">{{
+                                            formatWeatherDay(day.date, index) }}</span>
+                                        <span class="text-xl shrink-0">{{ getWeatherIcon(day.weather_code, 1) }}</span>
+                                        <span class="text-[10px] text-slate-400 w-16 text-center line-clamp-1">{{
+                                            getWeatherLabel(day.weather_code) }}</span>
+                                        <span class="text-slate-700 font-black text-right w-14">
+                                            <span class="text-rose-500">{{ Math.round(day.max_temperature) }}°</span>
+                                            <span class="text-slate-300">/</span>
+                                            <span class="text-blue-500">{{ Math.round(day.min_temperature) }}°</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
                     </div>
-                </div>
-            </details>
-        </div>
-    </div>
 
                     <!-- 버블형 구름 카테고리 컨트롤 데크 -->
                     <div class="bg-white border-2 border-stone-100 rounded-[2.5rem] p-6 shadow-sm space-y-4">
@@ -223,15 +248,18 @@
                         </div>
                     </div>
 
-</aside>
+                </aside>
 
                 <!-- [우측 윙: 라이브 액티비티 캔버스 (8칸)] -->
                 <div class="lg:col-span-8 space-y-8">
-                    
+
                     <!-- 접을 수 있는 다정한 환영 배너 카드 -->
-                    <details open class="group bg-gradient-to-r from-stone-900 to-indigo-950 text-white rounded-[2.5rem] overflow-hidden shadow-xl border-4 border-white transition-all">
-                        <summary class="flex items-center justify-between p-6 sm:px-8 cursor-pointer select-none outline-none">
-                            <span class="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm text-indigo-200 text-[10px] font-black px-3.5 py-1.5 rounded-full border border-white/10">
+                    <details open
+                        class="group bg-gradient-to-r from-stone-900 to-indigo-950 text-white rounded-[2.5rem] overflow-hidden shadow-xl border-4 border-white transition-all">
+                        <summary
+                            class="flex items-center justify-between p-6 sm:px-8 cursor-pointer select-none outline-none">
+                            <span
+                                class="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm text-indigo-200 text-[10px] font-black px-3.5 py-1.5 rounded-full border border-white/10">
                                 <span class="w-1.5 h-1.5 rounded-full bg-sky-300 animate-pulse"></span>
                                 {{ t('hero_badge') }}
                             </span>
@@ -239,7 +267,8 @@
                             <span class="text-xs font-bold text-indigo-300 hidden group-open:inline">배너 접기 &uarr;</span>
                         </summary>
                         <div class="px-6 sm:px-8 pb-8 pt-2 space-y-3">
-                            <h1 class="text-2xl sm:text-4xl font-black leading-snug tracking-tight bg-gradient-to-r from-white via-indigo-50 to-indigo-100 bg-clip-text text-transparent">
+                            <h1
+                                class="text-2xl sm:text-4xl font-black leading-snug tracking-tight bg-gradient-to-r from-white via-indigo-50 to-indigo-100 bg-clip-text text-transparent">
                                 {{ t('hero_title') }}
                             </h1>
                             <p class="text-xs sm:text-sm text-indigo-100/80 leading-relaxed font-semibold">
@@ -251,11 +280,14 @@
                     <!-- 공공데이터 큐레이션 리스트 영역 -->
                     <div class="space-y-5">
                         <div class="flex items-center justify-between">
-                            <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                                <span class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">🏛️</span>
+                            <h2
+                                class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                                <span
+                                    class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">🏛️</span>
                                 {{ getActiveCategoryName() }} {{ t('public_data_title') }}
                             </h2>
-                            <span class="text-xs font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 shadow-sm">
+                            <span
+                                class="text-xs font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 shadow-sm">
                                 {{ t('public_data_count', { count: getActiveCategoryItems().length }) }}
                             </span>
                         </div>
@@ -266,26 +298,34 @@
                                 @click="openLocationModal(item)"
                                 class="group bg-white border-2 border-stone-100 rounded-[2rem] p-5 hover:shadow-xl hover:shadow-indigo-50/20 hover:border-indigo-200 transition-all duration-300 flex flex-col justify-between cursor-pointer overflow-hidden relative">
                                 <div>
-                                    <div class="mb-4.5 h-44 rounded-2xl overflow-hidden bg-stone-50 flex items-center justify-center relative shadow-inner border border-stone-100">
+                                    <div
+                                        class="mb-4.5 h-44 rounded-2xl overflow-hidden bg-stone-50 flex items-center justify-center relative shadow-inner border border-stone-100">
                                         <img v-if="item.image" :src="item.image" :alt="item.title"
-                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy"
-                                            @error="$event.target.style.display='none'">
+                                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            loading="lazy" @error="$event.target.style.display='none'">
                                         <div v-else class="text-center">
                                             <span class="text-4xl block mb-2">📸</span>
-                                            <span class="text-[11px] text-slate-400 font-extrabold">{{ t('image_none') }}</span>
+                                            <span class="text-[11px] text-slate-400 font-extrabold">{{ t('image_none')
+                                                }}</span>
                                         </div>
                                     </div>
                                     <div class="flex items-center justify-between gap-2 mb-2">
-                                        <span class="bg-indigo-50 text-indigo-700 text-[10px] font-black px-2.5 py-1 rounded-lg border border-indigo-100/40">
+                                        <span
+                                            class="bg-indigo-50 text-indigo-700 text-[10px] font-black px-2.5 py-1 rounded-lg border border-indigo-100/40">
                                             {{ item.subTag || t('default_subtag') }}
                                         </span>
-                                        <span class="text-xs text-slate-400 font-extrabold flex items-center gap-1">📍 {{ item.location || t('default_location') }}</span>
+                                        <span class="text-xs text-slate-400 font-extrabold flex items-center gap-1">📍
+                                            {{ item.location || t('default_location') }}</span>
                                     </div>
-                                    <h3 class="font-black text-base text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1 mt-1">{{ item.title }}</h3>
-                                    <p class="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed font-semibold">{{ item.desc }}</p>
+                                    <h3
+                                        class="font-black text-base text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1 mt-1">
+                                        {{ item.title }}</h3>
+                                    <p class="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed font-semibold">{{
+                                        item.desc }}</p>
                                 </div>
                                 <div class="mt-4 pt-3.5 border-t border-stone-50 flex items-center justify-end">
-                                    <span class="text-xs font-black text-indigo-600 bg-indigo-50 px-3.5 py-2 rounded-2xl group-hover:translate-x-1.5 transition-transform">
+                                    <span
+                                        class="text-xs font-black text-indigo-600 bg-indigo-50 px-3.5 py-2 rounded-2xl group-hover:translate-x-1.5 transition-transform">
                                         똑똑! 친구 추천 정보 확인 &rarr;
                                     </span>
                                 </div>
@@ -296,8 +336,10 @@
                     <!-- 최근 익명 게시글 영역 (포스트잇 코크보드 디자인으로 완전히 변경) -->
                     <div class="space-y-5">
                         <div class="flex items-center justify-between">
-                            <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                                <span class="bg-amber-100 text-amber-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">📌</span>
+                            <h2
+                                class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                                <span
+                                    class="bg-amber-100 text-amber-700 w-8 h-8 rounded-full flex items-center justify-center text-sm">📌</span>
                                 {{ t('recent_posts_title') }}
                             </h2>
                             <button @click="navigateTo('board')"
@@ -308,26 +350,36 @@
 
                         <!-- 핀으로 고정된 포스트잇 수다 그리드 -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div v-if="posts.length === 0" class="col-span-full text-center py-16 bg-white border-2 border-dashed border-stone-200 rounded-[2rem] text-slate-400 font-bold">
+                            <div v-if="posts.length === 0"
+                                class="col-span-full text-center py-16 bg-white border-2 border-dashed border-stone-200 rounded-[2rem] text-slate-400 font-bold">
                                 📬 아직 작성된 이야기가 없네요. 첫 수다를 띄워보세요!
                             </div>
                             <div v-for="post in posts.slice(0, 4)" :key="post.id" @click="viewPostDetail(post.id)"
                                 class="group bg-[#FFFDF9] border-2 border-stone-200/60 rounded-3xl p-5 cursor-pointer hover:shadow-xl hover:shadow-amber-100/40 hover:rotate-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[170px]">
                                 <!-- 상단 핀 모티프 장식 -->
-                                <div class="absolute -top-1 left-1/2 -translate-x-1/2 text-xl drop-shadow-sm select-none">📌</div>
-                                
+                                <div
+                                    class="absolute -top-1 left-1/2 -translate-x-1/2 text-xl drop-shadow-sm select-none">
+                                    📌</div>
+
                                 <div class="space-y-2 mt-2">
                                     <div class="flex items-center justify-between text-[10px] text-slate-400 font-bold">
-                                        <span class="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-150">No. {{ post.id }}</span>
+                                        <span
+                                            class="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-150">No.
+                                            {{ post.id }}</span>
                                         <span>{{ post.date }}</span>
                                     </div>
-                                    <h3 class="font-extrabold text-sm text-slate-900 group-hover:text-amber-700 transition-colors line-clamp-1">{{ post.title }}</h3>
-                                    <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed font-semibold">{{ post.content }}</p>
+                                    <h3
+                                        class="font-extrabold text-sm text-slate-900 group-hover:text-amber-700 transition-colors line-clamp-1">
+                                        {{ post.title }}</h3>
+                                    <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed font-semibold">{{
+                                        post.content }}</p>
                                 </div>
 
-                                <div class="flex items-center justify-between pt-3 mt-4 border-t border-stone-100 text-[10px] text-slate-400 font-bold">
+                                <div
+                                    class="flex items-center justify-between pt-3 mt-4 border-t border-stone-100 text-[10px] text-slate-400 font-bold">
                                     <span>👀 {{ post.views || 0 }}회 조회</span>
-                                    <span class="bg-amber-100/50 text-amber-800 px-2.5 py-1 rounded-xl">댓글 {{ post.comment_count || 0 }}</span>
+                                    <span class="bg-amber-100/50 text-amber-800 px-2.5 py-1 rounded-xl">댓글 {{
+                                        post.comment_count || 0 }}</span>
                                 </div>
                             </div>
                         </div>
@@ -338,9 +390,11 @@
 
             <!-- ② 게시판 목록 화면 -->
             <div v-if="currentView === 'board'" class="space-y-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b-2 border-stone-200">
+                <div
+                    class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b-2 border-stone-200">
                     <div>
-                        <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <h2
+                            class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                             <span class="bg-indigo-100 p-2 rounded-2xl">📝</span>
                             {{ t('board_title') }}
                         </h2>
@@ -353,7 +407,8 @@
                 </div>
 
                 <!-- 검색 및 정렬 -->
-                <div class="bg-white border-2 border-stone-100 rounded-[2.5rem] p-5 flex flex-col sm:flex-row gap-3 shadow-md shadow-stone-100">
+                <div
+                    class="bg-white border-2 border-stone-100 rounded-[2.5rem] p-5 flex flex-col sm:flex-row gap-3 shadow-md shadow-stone-100">
                     <div class="flex-1 relative">
                         <input v-model="searchQuery" @keyup.enter.prevent="triggerSearch" type="text"
                             :placeholder="t('search_placeholder')"
@@ -378,33 +433,43 @@
 
                 <!-- 게시글 리스트 엽서 카드 그리드 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div v-if="filteredPosts.length === 0" class="col-span-full bg-white border-2 border-stone-100 rounded-[2.5rem] py-20 text-center text-slate-400 font-bold shadow-sm">
+                    <div v-if="filteredPosts.length === 0"
+                        class="col-span-full bg-white border-2 border-stone-100 rounded-[2.5rem] py-20 text-center text-slate-400 font-bold shadow-sm">
                         <span class="text-5xl block mb-3">🎈</span>
                         {{ t('empty_results') }}
                     </div>
 
                     <div v-for="post in filteredPosts" :key="post.id" @click="viewPostDetail(post.id)"
                         class="group bg-white border-2 border-stone-100 hover:border-indigo-300 rounded-[2.5rem] p-6 cursor-pointer transition-all hover:shadow-xl hover:shadow-indigo-50/20 flex flex-col justify-between gap-5 relative shadow-sm overflow-hidden">
-                        
-                        <div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-indigo-50/30 group-hover:scale-150 transition-transform duration-500"></div>
+
+                        <div
+                            class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-indigo-50/30 group-hover:scale-150 transition-transform duration-500">
+                        </div>
 
                         <div class="space-y-3 relative z-10">
                             <div class="flex items-center gap-2.5 font-bold">
-                                <span class="bg-indigo-50 text-indigo-700 text-[10px] px-3 py-1 rounded-lg">No. {{ post.displayNo }}</span>
+                                <span class="bg-indigo-50 text-indigo-700 text-[10px] px-3 py-1 rounded-lg">No. {{
+                                    post.displayNo }}</span>
                                 <span class="text-[11px] text-slate-400">{{ post.date }}</span>
                             </div>
-                            <h3 class="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug">{{ post.title }}</h3>
-                            <p class="text-xs text-slate-500 line-clamp-2 font-semibold leading-relaxed pt-1">{{ post.content }}</p>
+                            <h3
+                                class="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug">
+                                {{ post.title }}</h3>
+                            <p class="text-xs text-slate-500 line-clamp-2 font-semibold leading-relaxed pt-1">{{
+                                post.content }}</p>
                         </div>
 
-                        <div class="flex items-center justify-between pt-4 border-t border-stone-50 text-xs shrink-0 font-bold relative z-10">
+                        <div
+                            class="flex items-center justify-between pt-4 border-t border-stone-50 text-xs shrink-0 font-bold relative z-10">
                             <span class="text-slate-500 flex items-center gap-1.5 bg-slate-50 px-3.5 py-2 rounded-2xl">
                                 <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
                                 {{ t('anonymous') }}
                             </span>
                             <div class="flex items-center gap-2">
-                                <span class="bg-indigo-50/60 text-indigo-700 px-3 py-2 rounded-xl">{{ t('views_label', { count: post.views || 0 }) }}</span>
-                                <span class="bg-violet-50/80 text-violet-700 px-3 py-2 rounded-xl">{{ t('reply_count_label', { count: post.comment_count || 0 }) }}</span>
+                                <span class="bg-indigo-50/60 text-indigo-700 px-3 py-2 rounded-xl">{{ t('views_label', {
+                                    count: post.views || 0 }) }}</span>
+                                <span class="bg-violet-50/80 text-violet-700 px-3 py-2 rounded-xl">{{
+                                    t('reply_count_label', { count: post.comment_count || 0 }) }}</span>
                             </div>
                         </div>
                     </div>
@@ -423,14 +488,17 @@
                 <div class="bg-white border-2 border-stone-100 rounded-[2.5rem] p-8 sm:p-12 space-y-8 shadow-md">
                     <div class="border-b-2 border-stone-100 pb-6">
                         <div class="flex items-center justify-between text-xs text-slate-400 font-bold mb-4">
-                            <span class="bg-stone-50 text-slate-500 px-3.5 py-1.5 rounded-xl border border-stone-100">{{ t('detail_meta', { id: currentPost.id, views: currentPost.views || 0 }) }}</span>
+                            <span class="bg-stone-50 text-slate-500 px-3.5 py-1.5 rounded-xl border border-stone-100">{{
+                                t('detail_meta', { id: currentPost.id, views: currentPost.views || 0 }) }}</span>
                             <span>{{ t('detail_date', { date: currentPost.date }) }}</span>
                         </div>
-                        <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-snug mt-2">{{ currentPost.title }}</h2>
+                        <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-snug mt-2">{{
+                            currentPost.title }}</h2>
                     </div>
 
                     <!-- 게시물 본문 내용 -->
-                    <div class="text-sm sm:text-base text-slate-700 leading-relaxed whitespace-pre-wrap min-h-[200px] font-semibold pt-2">
+                    <div
+                        class="text-sm sm:text-base text-slate-700 leading-relaxed whitespace-pre-wrap min-h-[200px] font-semibold pt-2">
                         {{ currentPost.content }}
                     </div>
 
@@ -453,11 +521,14 @@
                                 <span class="w-1.5 h-4 bg-indigo-500 rounded-full"></span>
                                 {{ t('comments_title') }}
                             </h3>
-                            <span class="text-xs font-black text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100/40">{{ t('reply_count_label', { count: comments.length }) }}</span>
+                            <span
+                                class="text-xs font-black text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100/40">{{
+                                t('reply_count_label', { count: comments.length }) }}</span>
                         </div>
 
                         <!-- 댓글 달기 폼 -->
-                        <form @submit.stop.prevent="submitComment" class="bg-stone-50/50 border-2 border-stone-100 p-5 rounded-[2rem] flex flex-col gap-4 shadow-inner">
+                        <form @submit.stop.prevent="submitComment"
+                            class="bg-stone-50/50 border-2 border-stone-100 p-5 rounded-[2rem] flex flex-col gap-4 shadow-inner">
                             <textarea v-model="commentInput" @keydown.ctrl.enter.prevent="submitComment" rows="3"
                                 :placeholder="t('comment_placeholder')"
                                 class="w-full bg-white border border-stone-200 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold"
@@ -475,21 +546,25 @@
                         </form>
 
                         <!-- 댓글 목록 -->
-                        <div v-if="comments.length === 0" class="text-xs text-slate-400 font-bold text-center py-10 bg-stone-50/40 rounded-3xl border-2 border-dashed border-stone-200">
+                        <div v-if="comments.length === 0"
+                            class="text-xs text-slate-400 font-bold text-center py-10 bg-stone-50/40 rounded-3xl border-2 border-dashed border-stone-200">
                             {{ t('no_comments') }}
                         </div>
-                        
+
                         <div v-for="comment in comments" :key="comment.id"
                             class="bg-[#fafaf9]/85 border-2 border-stone-100 rounded-3xl p-5 space-y-3 transition-all hover:border-indigo-100 shadow-sm">
                             <div class="flex items-center justify-between text-[11px] text-slate-400 font-bold">
-                                <span class="text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl">💬 {{ t('anonymous') }}</span>
+                                <span class="text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl">💬 {{ t('anonymous')
+                                    }}</span>
                                 <span>{{ comment.created_at ? comment.created_at.slice(0, 10) : '' }}</span>
                             </div>
                             <p v-if="editingCommentId !== comment.id && deletingCommentId !== comment.id"
-                                class="text-sm text-slate-700 whitespace-pre-wrap font-semibold leading-relaxed">{{ comment.content }}</p>
+                                class="text-sm text-slate-700 whitespace-pre-wrap font-semibold leading-relaxed">{{
+                                comment.content }}</p>
 
                             <!-- 댓글 수정 상태 폼 -->
-                            <div v-if="editingCommentId === comment.id" class="mt-3 space-y-2 bg-stone-100/50 p-4 rounded-2xl border border-stone-150">
+                            <div v-if="editingCommentId === comment.id"
+                                class="mt-3 space-y-2 bg-stone-100/50 p-4 rounded-2xl border border-stone-150">
                                 <textarea v-model="commentEditDraft" rows="3"
                                     :placeholder="t('comment_edit_placeholder')"
                                     class="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"></textarea>
@@ -512,7 +587,8 @@
                             </div>
 
                             <!-- 댓글 삭제 비밀번호 확인 상태 -->
-                            <div v-else-if="deletingCommentId === comment.id" class="mt-3 space-y-2 bg-rose-50/50 p-4 rounded-2xl border border-rose-100">
+                            <div v-else-if="deletingCommentId === comment.id"
+                                class="mt-3 space-y-2 bg-rose-50/50 p-4 rounded-2xl border border-rose-100">
                                 <div class="flex flex-col sm:flex-row gap-2">
                                     <input v-model="commentDeletePassword" type="password"
                                         :placeholder="t('comment_password_placeholder')"
@@ -557,7 +633,8 @@
                     class="bg-white border-2 border-stone-100 rounded-[2.5rem] p-8 sm:p-12 space-y-6 shadow-md">
                     <!-- 제목 입력 -->
                     <div class="space-y-2">
-                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider">{{ t('form_title_label') }}</label>
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider">{{
+                            t('form_title_label') }}</label>
                         <input v-model="postForm.title" type="text" :placeholder="t('form_title_placeholder')"
                             class="w-full bg-stone-50 border border-stone-200 rounded-2xl px-5 py-4 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-semibold"
                             required>
@@ -565,7 +642,8 @@
 
                     <!-- 내용 입력 -->
                     <div class="space-y-2">
-                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider">{{ t('form_content_label') }}</label>
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider">{{
+                            t('form_content_label') }}</label>
                         <textarea v-model="postForm.content" rows="8" :placeholder="t('form_content_placeholder')"
                             class="w-full bg-stone-50 border border-stone-200 rounded-2xl px-5 py-4 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-semibold"
                             required></textarea>
@@ -573,11 +651,13 @@
 
                     <!-- 수정용 비밀번호 등록 -->
                     <div class="space-y-2">
-                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider">{{ t('password_label') }}</label>
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider">{{ t('password_label')
+                            }}</label>
                         <input v-model="postForm.password" type="password" :placeholder="t('password_placeholder')"
                             class="w-full bg-stone-50 border border-stone-200 rounded-2xl px-5 py-4 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-semibold"
                             required>
-                        <p class="text-[11px] text-amber-700 bg-amber-50 px-4 py-2.5 rounded-2xl border border-amber-100 inline-block font-bold mt-2">
+                        <p
+                            class="text-[11px] text-amber-700 bg-amber-50 px-4 py-2.5 rounded-2xl border border-amber-100 inline-block font-bold mt-2">
                             {{ t('password_note') }}
                         </p>
                     </div>
@@ -607,7 +687,8 @@
             <div v-show="isChatOpen"
                 class="chatbot-window bg-white border border-stone-200 w-96 max-h-[500px] h-[500px] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden mb-4 animate-in fade-in slide-in-from-bottom-5 duration-150">
                 <!-- 챗봇 헤더 바 -->
-                <div class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-6 py-4.5 flex items-center justify-between shadow-md">
+                <div
+                    class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-6 py-4.5 flex items-center justify-between shadow-md">
                     <div class="flex items-center gap-2.5">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                         <span class="font-black text-xs tracking-wider uppercase">{{ t('chat_title') }}</span>
@@ -619,8 +700,7 @@
                             {{ t('chat_reset') }}
                         </button>
                         <button @click="isChatOpen = false" class="text-white hover:text-stone-100">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3"
-                                viewBox="0 0 24 24">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
@@ -669,7 +749,8 @@
             <!-- (1) 접힌 상태 (펄스 서클 포인트) -->
             <button @click="isChatOpen = !isChatOpen"
                 class="bg-gradient-to-tr from-indigo-600 to-violet-600 text-white p-5 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center relative border-2 border-white">
-                <span class="absolute -top-1 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full ring-2 ring-white"></span>
+                <span
+                    class="absolute -top-1 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full ring-2 ring-white"></span>
                 <svg v-if="!isChatOpen" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5"
                     viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -714,17 +795,21 @@
         <!-- ========================================================= -->
         <!-- ⭐️ 극적 인터랙션 혁신: 슬라이드 오버 정보 사이드 패널 (Slide-over Side Panel) -->
         <!-- ========================================================= -->
-        <div v-if="showLocationModal" class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+        <div v-if="showLocationModal" class="fixed inset-0 z-50 overflow-hidden" aria-labelledby="slide-over-title"
+            role="dialog" aria-modal="true">
             <div class="absolute inset-0 overflow-hidden">
                 <!-- 아웃포커싱 배경 가림막 -->
-                <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-300" @click="closeLocationModal"></div>
+                <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-300"
+                    @click="closeLocationModal"></div>
 
                 <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10 sm:pl-16">
                     <!-- 슬라이드 이펙트 카드 몸체 -->
-                    <div class="pointer-events-auto w-screen max-w-2xl bg-white rounded-l-[3.5rem] shadow-2xl p-6 sm:p-10 flex flex-col justify-between border-l-4 border-violet-100 drawer-transition translate-x-0 relative">
-                        
+                    <div
+                        class="pointer-events-auto w-screen max-w-2xl bg-white rounded-l-[3.5rem] shadow-2xl p-6 sm:p-10 flex flex-col justify-between border-l-4 border-violet-100 drawer-transition translate-x-0 relative">
+
                         <!-- 닫기 버튼 -->
-                        <button @click="closeLocationModal" class="absolute top-6 left-6 text-slate-400 hover:text-slate-600 p-2 hover:bg-stone-50 rounded-full transition-all">
+                        <button @click="closeLocationModal"
+                            class="absolute top-6 left-6 text-slate-400 hover:text-slate-600 p-2 hover:bg-stone-50 rounded-full transition-all">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
@@ -734,16 +819,20 @@
                             <!-- 헤더 -->
                             <div class="space-y-3">
                                 <div class="flex items-center gap-2">
-                                    <span class="bg-indigo-50 text-indigo-700 text-[10px] font-black px-3 py-1.5 rounded-xl border border-indigo-100/40">
+                                    <span
+                                        class="bg-indigo-50 text-indigo-700 text-[10px] font-black px-3 py-1.5 rounded-xl border border-indigo-100/40">
                                         {{ selectedLocation.subTag || t('default_subtag') }}
                                     </span>
-                                    <span class="text-xs text-slate-400 font-extrabold flex items-center gap-1">📍 {{ selectedLocation.location || t('default_location') }}</span>
+                                    <span class="text-xs text-slate-400 font-extrabold flex items-center gap-1">📍 {{
+                                        selectedLocation.location || t('default_location') }}</span>
                                 </div>
-                                <h3 class="text-2xl sm:text-3xl font-black text-slate-900 leading-snug">{{ selectedLocation.title }}</h3>
+                                <h3 class="text-2xl sm:text-3xl font-black text-slate-900 leading-snug">{{
+                                    selectedLocation.title }}</h3>
                             </div>
 
                             <!-- 이미지 배너 -->
-                            <div class="h-64 rounded-3xl overflow-hidden bg-stone-50 flex items-center justify-center relative shadow-inner border border-stone-100">
+                            <div
+                                class="h-64 rounded-3xl overflow-hidden bg-stone-50 flex items-center justify-center relative shadow-inner border border-stone-100">
                                 <img v-if="selectedLocation.image" :src="selectedLocation.image"
                                     :alt="selectedLocation.title" class="w-full h-full object-cover" loading="lazy"
                                     @error="$event.target.style.display='none'">
@@ -751,32 +840,39 @@
                             </div>
 
                             <!-- 설명글 -->
-                            <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-semibold">{{ selectedLocation.desc }}</p>
+                            <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-semibold">{{
+                                selectedLocation.desc }}</p>
 
                             <!-- 하단 상세 메타 소식첩 -->
-                            <div class="text-xs sm:text-sm text-slate-700 space-y-3 font-bold bg-[#FAF6F0]/70 p-5 rounded-3xl border border-stone-200/50">
+                            <div
+                                class="text-xs sm:text-sm text-slate-700 space-y-3 font-bold bg-[#FAF6F0]/70 p-5 rounded-3xl border border-stone-200/50">
                                 <div v-if="selectedLocation.address" class="flex items-start gap-1.5">
-                                    <strong class="text-slate-900 shrink-0">🏠 주소:</strong> 
+                                    <strong class="text-slate-900 shrink-0">🏠 주소:</strong>
                                     <span class="text-slate-600 font-semibold">{{ selectedLocation.address }}</span>
                                 </div>
                                 <div v-if="selectedLocation.telephone" class="flex items-start gap-1.5">
-                                    <strong class="text-slate-900 shrink-0">📞 전화:</strong> 
+                                    <strong class="text-slate-900 shrink-0">📞 전화:</strong>
                                     <span class="text-slate-600 font-semibold">{{ selectedLocation.telephone }}</span>
                                 </div>
                             </div>
 
                             <!-- 지도 영역 (드로어 내부 바인딩) -->
-                            <div class="rounded-3xl border border-stone-200 bg-stone-100 min-h-[380px] overflow-hidden shadow-inner">
-                                <div v-if="selectedLocation && hasLocationCoordinates(selectedLocation)" class="w-full h-full min-h-[380px]">
+                            <div
+                                class="rounded-3xl border border-stone-200 bg-stone-100 min-h-[380px] overflow-hidden shadow-inner">
+                                <div v-if="selectedLocation && hasLocationCoordinates(selectedLocation)"
+                                    class="w-full h-full min-h-[380px]">
                                     <div ref="mapContainer" class="location-map"></div>
                                 </div>
-                                <div v-else class="w-full h-full min-h-[380px] flex items-center justify-center bg-stone-50">
+                                <div v-else
+                                    class="w-full h-full min-h-[380px] flex items-center justify-center bg-stone-50">
                                     <div class="text-center px-6">
-                                        <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-white border border-stone-200 flex items-center justify-center text-indigo-500 shadow-sm animate-pulse">
+                                        <div
+                                            class="w-14 h-14 mx-auto mb-4 rounded-full bg-white border border-stone-200 flex items-center justify-center text-indigo-500 shadow-sm animate-pulse">
                                             🗺️
                                         </div>
                                         <p class="text-sm font-black text-slate-800">지도가 보이지 않아요</p>
-                                        <p class="text-xs text-slate-400 mt-1 font-semibold">이 장소의 상세 좌표 정보가 공공 포털에 등록되어 있지 않습니다.</p>
+                                        <p class="text-xs text-slate-400 mt-1 font-semibold">이 장소의 상세 좌표 정보가 공공 포털에 등록되어
+                                            있지 않습니다.</p>
                                     </div>
                                 </div>
                             </div>
@@ -845,8 +941,8 @@
 
                 const translations = {
                     ko: {
-                        nav_home: '🏠 동네 구경',
-                        nav_board: '💬 동네 수다방',
+                        nav_home: ' 동네 구경',
+                        nav_board: ' 동네 수다방',
                         region_badge: '📍 부산 활성화 모드',
                         hero_badge: '포근한 동네 가이드',
                         hero_title: '부산 여행? 동네 친구한테 편하게 물어봐! 로컬허브',
