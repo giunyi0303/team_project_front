@@ -640,9 +640,11 @@
 
         createApp({
             setup() {
-                const API_BASE_URL = window.location.protocol.startsWith('http') && window.location.port === '8000'
-                    ? window.location.origin
-                    : 'http://127.0.0.1:8000';
+                const API_BASE_URL = window.__ENV__?.API_BASE_URL || (
+                    (window.location.protocol.startsWith('http') && window.location.port === '8000')
+                        ? window.location.origin
+                        : 'http://127.0.0.1:8000'
+                );
 
                 const currentView = ref('home');
                 const searchQuery = ref('');
