@@ -70,6 +70,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# CORS origins from environment (comma-separated). If set, override default '*'.
+_allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "").strip()
+if _allowed_origins_env:
+    try:
+        _origins = [o.strip() for o in _allowed_origins_env.split(",") if o.strip()]
+        # reconfigure middleware to use explicit origins
+        app.user_middleware.clear()
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=_origins,
+            allow_credentials=False,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        logger.info("CORS configured from ALLOWED_ORIGINS: %s", _origins)
+    except Exception:
+        logger.exception("Failed to parse ALLOWED_ORIGINS: %s", _allowed_origins_env)
+
 
 @app.on_event("startup")
 def startup_event():
