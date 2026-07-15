@@ -99,6 +99,99 @@
                     </div>
                 </div>
 
+
+                <!-- 부산 현재 날씨 및 7일 예보 -->
+                <section class="space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+                        <div>
+                            <h2 class="text-xl font-black text-gray-900">{{ t('weather_title') }}</h2>
+                            <p class="text-xs text-gray-500 mt-1">{{ t('weather_desc') }}</p>
+                        </div>
+                        <button type="button" @click="loadWeather" :disabled="weatherLoading"
+                            class="self-start sm:self-auto border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 text-gray-700 font-bold px-3 py-2 rounded-xl text-xs transition-colors">
+                            {{ weatherLoading ? t('weather_loading') : t('weather_refresh') }}
+                        </button>
+                    </div>
+
+                    <div v-if="weatherLoading"
+                        class="bg-white border border-gray-200 rounded-2xl p-8 text-center text-sm text-gray-400 shadow-sm">
+                        {{ t('weather_loading') }}
+                    </div>
+
+                    <div v-else-if="weatherError"
+                        class="bg-red-50 border border-red-200 rounded-2xl p-5 text-sm text-red-600">
+                        <p class="font-bold">{{ t('weather_error_title') }}</p>
+                        <p class="text-xs mt-1">{{ weatherError }}</p>
+                    </div>
+
+                    <div v-else-if="currentWeather && weeklyWeather.length"
+                        class="grid grid-cols-1 xl:grid-cols-[280px_1fr] gap-4">
+                        <article class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 to-indigo-700 text-white p-6 shadow-lg">
+                            <div class="absolute -right-12 -top-12 w-40 h-40 rounded-full bg-white/10"></div>
+                            <div class="relative">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-xs font-bold text-sky-100">{{ t('weather_current') }}</p>
+                                        <h3 class="text-lg font-black mt-1">부산광역시</h3>
+                                        <p class="text-[11px] text-sky-100 mt-1">{{ formatWeatherTime(currentWeather.time) }}</p>
+                                    </div>
+                                    <span class="text-5xl" aria-hidden="true">{{ getWeatherIcon(currentWeather.weather_code, currentWeather.is_day) }}</span>
+                                </div>
+
+                                <div class="mt-6">
+                                    <div class="flex items-end gap-2">
+                                        <strong class="text-5xl font-black leading-none">{{ Math.round(currentWeather.temperature_2m) }}°</strong>
+                                        <span class="text-sm text-sky-100 pb-1">{{ getWeatherLabel(currentWeather.weather_code) }}</span>
+                                    </div>
+                                    <p class="text-xs text-sky-100 mt-2">
+                                        {{ t('weather_feels_like') }} {{ Math.round(currentWeather.apparent_temperature) }}°
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 mt-6">
+                                    <div class="bg-white/10 rounded-xl p-3">
+                                        <p class="text-[10px] text-sky-100">{{ t('weather_humidity') }}</p>
+                                        <p class="text-sm font-black mt-1">{{ currentWeather.relative_humidity_2m }}%</p>
+                                    </div>
+                                    <div class="bg-white/10 rounded-xl p-3">
+                                        <p class="text-[10px] text-sky-100">{{ t('weather_wind') }}</p>
+                                        <p class="text-sm font-black mt-1">{{ Math.round(currentWeather.wind_speed_10m) }} km/h</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <div class="bg-white border border-gray-200 rounded-3xl p-4 sm:p-5 shadow-sm overflow-hidden">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-black text-gray-900">{{ t('weather_weekly') }}</h3>
+                                <span class="text-[10px] text-gray-400">{{ t('weather_source') }}</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                                <article v-for="(day, index) in weeklyWeather" :key="day.date"
+                                    class="rounded-2xl border p-3 text-center transition-colors"
+                                    :class="index === 0 ? 'border-indigo-200 bg-indigo-50' : 'border-gray-100 bg-gray-50'">
+                                    <p class="text-xs font-bold" :class="index === 0 ? 'text-indigo-700' : 'text-gray-700'">
+                                        {{ formatWeatherDay(day.date, index) }}
+                                    </p>
+                                    <p class="text-[10px] text-gray-400 mt-0.5">{{ formatWeatherDate(day.date) }}</p>
+                                    <div class="text-3xl my-3" aria-hidden="true">{{ getWeatherIcon(day.weather_code, 1) }}</div>
+                                    <p class="text-[11px] font-semibold text-gray-600 min-h-[32px]">{{ getWeatherLabel(day.weather_code) }}</p>
+                                    <div class="flex justify-center gap-1 text-xs font-black mt-2">
+                                        <span class="text-red-500">{{ Math.round(day.max_temperature) }}°</span>
+                                        <span class="text-gray-300">/</span>
+                                        <span class="text-blue-500">{{ Math.round(day.min_temperature) }}°</span>
+                                    </div>
+                                    <p class="text-[10px] text-sky-600 font-bold mt-2">
+                                        💧 {{ day.precipitation_probability }}%
+                                    </p>
+                                </article>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
                 <!-- 카테고리 바로가기 퀵 메뉴 -->
                 <div>
                     <h2 class="text-lg font-bold text-gray-900 mb-4">{{ t('quick_menu_title') }}</h2>
@@ -556,6 +649,10 @@
                 const activeSearch = ref('');
                 const sortType = ref('date');
                 const language = ref('ko');
+                const currentWeather = ref(null);
+                const weeklyWeather = ref([]);
+                const weatherLoading = ref(false);
+                const weatherError = ref('');
 
                 const translations = {
                     ko: {
@@ -565,6 +662,18 @@
                         hero_badge: '권역 정보 서비스',
                         hero_title: '선정 권역: 부산(Busan)의 지역 정보를 한눈에 만나보세요',
                         hero_desc: 'LocalHub는 부산의 공공데이터를 기반으로 한 신뢰할 수 있는 지역 정보 제공 플랫폼입니다. 관광지, 문화시설, 레포츠, 숙박 정보는 물론, 주민들과 자유롭게 소통하는 익명 게시판을 지금 이용해 보세요!',
+                        weather_title: '부산 날씨',
+                        weather_desc: '부산의 현재 날씨와 앞으로 7일간의 예보입니다.',
+                        weather_current: '현재 날씨',
+                        weather_weekly: '7일 예보',
+                        weather_loading: '날씨 정보를 불러오는 중...',
+                        weather_refresh: '새로고침',
+                        weather_error_title: '날씨 정보를 불러오지 못했습니다.',
+                        weather_feels_like: '체감',
+                        weather_humidity: '습도',
+                        weather_wind: '풍속',
+                        weather_source: 'Open-Meteo 제공',
+                        weather_today: '오늘',
                         quick_menu_title: '카테고리 정보 바로가기',
                         public_data_title: '공공 데이터 목록',
                         public_data_count: '제공 데이터 개수: {count}개',
@@ -643,6 +752,18 @@
                         hero_badge: 'Regional Information Service',
                         hero_title: 'Discover Busan (Busan) regional information at a glance',
                         hero_desc: 'LocalHub is a reliable local information platform based on Busan public data. Explore tourist sites, cultural facilities, leisure activities, lodging information, and join an anonymous community board to share ideas with residents.',
+                        weather_title: 'Busan Weather',
+                        weather_desc: 'Current conditions and the next seven days in Busan.',
+                        weather_current: 'Current weather',
+                        weather_weekly: '7-day forecast',
+                        weather_loading: 'Loading weather...',
+                        weather_refresh: 'Refresh',
+                        weather_error_title: 'Unable to load weather data.',
+                        weather_feels_like: 'Feels like',
+                        weather_humidity: 'Humidity',
+                        weather_wind: 'Wind',
+                        weather_source: 'Powered by Open-Meteo',
+                        weather_today: 'Today',
                         quick_menu_title: 'Quick access to category information',
                         public_data_title: 'public data list',
                         public_data_count: 'Available items: {count}',
@@ -803,6 +924,118 @@
                         throw new Error(data.detail || '요청 처리 중 오류가 발생했습니다.');
                     }
                     return data;
+                };
+
+
+                const WEATHER_API_URL = [
+                    'https://api.open-meteo.com/v1/forecast',
+                    '?latitude=35.1796',
+                    '&longitude=129.0756',
+                    '&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m',
+                    '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+                    '&timezone=Asia%2FSeoul',
+                    '&forecast_days=7'
+                ].join('');
+
+                const weatherCodeMap = {
+                    0: { ko: '맑음', en: 'Clear', day: '☀️', night: '🌙' },
+                    1: { ko: '대체로 맑음', en: 'Mostly clear', day: '🌤️', night: '🌙' },
+                    2: { ko: '구름 조금', en: 'Partly cloudy', day: '⛅', night: '☁️' },
+                    3: { ko: '흐림', en: 'Overcast', day: '☁️', night: '☁️' },
+                    45: { ko: '안개', en: 'Fog', day: '🌫️', night: '🌫️' },
+                    48: { ko: '서리 안개', en: 'Rime fog', day: '🌫️', night: '🌫️' },
+                    51: { ko: '약한 이슬비', en: 'Light drizzle', day: '🌦️', night: '🌧️' },
+                    53: { ko: '이슬비', en: 'Drizzle', day: '🌦️', night: '🌧️' },
+                    55: { ko: '강한 이슬비', en: 'Heavy drizzle', day: '🌧️', night: '🌧️' },
+                    61: { ko: '약한 비', en: 'Light rain', day: '🌦️', night: '🌧️' },
+                    63: { ko: '비', en: 'Rain', day: '🌧️', night: '🌧️' },
+                    65: { ko: '강한 비', en: 'Heavy rain', day: '🌧️', night: '🌧️' },
+                    71: { ko: '약한 눈', en: 'Light snow', day: '🌨️', night: '🌨️' },
+                    73: { ko: '눈', en: 'Snow', day: '❄️', night: '❄️' },
+                    75: { ko: '강한 눈', en: 'Heavy snow', day: '❄️', night: '❄️' },
+                    80: { ko: '약한 소나기', en: 'Light showers', day: '🌦️', night: '🌧️' },
+                    81: { ko: '소나기', en: 'Showers', day: '🌧️', night: '🌧️' },
+                    82: { ko: '강한 소나기', en: 'Heavy showers', day: '⛈️', night: '⛈️' },
+                    95: { ko: '뇌우', en: 'Thunderstorm', day: '⛈️', night: '⛈️' },
+                    96: { ko: '우박을 동반한 뇌우', en: 'Thunderstorm with hail', day: '⛈️', night: '⛈️' },
+                    99: { ko: '강한 우박 뇌우', en: 'Heavy thunderstorm with hail', day: '⛈️', night: '⛈️' }
+                };
+
+                const getWeatherInfo = (code) => weatherCodeMap[Number(code)] || {
+                    ko: '날씨 정보 없음',
+                    en: 'Unknown',
+                    day: '🌡️',
+                    night: '🌡️'
+                };
+
+                const getWeatherLabel = (code) => {
+                    const info = getWeatherInfo(code);
+                    return language.value === 'en' ? info.en : info.ko;
+                };
+
+                const getWeatherIcon = (code, isDay = 1) => {
+                    const info = getWeatherInfo(code);
+                    return Number(isDay) === 1 ? info.day : info.night;
+                };
+
+                const formatWeatherDay = (dateString, index) => {
+                    if (index === 0) return t('weather_today');
+                    const date = new Date(`${dateString}T00:00:00`);
+                    return new Intl.DateTimeFormat(language.value === 'en' ? 'en-US' : 'ko-KR', {
+                        weekday: 'short'
+                    }).format(date);
+                };
+
+                const formatWeatherDate = (dateString) => {
+                    const date = new Date(`${dateString}T00:00:00`);
+                    return new Intl.DateTimeFormat(language.value === 'en' ? 'en-US' : 'ko-KR', {
+                        month: 'numeric',
+                        day: 'numeric'
+                    }).format(date);
+                };
+
+                const formatWeatherTime = (dateString) => {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    return new Intl.DateTimeFormat(language.value === 'en' ? 'en-US' : 'ko-KR', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }).format(date);
+                };
+
+                const loadWeather = async () => {
+                    weatherLoading.value = true;
+                    weatherError.value = '';
+
+                    try {
+                        const response = await fetch(WEATHER_API_URL);
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                        const data = await response.json();
+                        if (!data.current || !data.daily || !Array.isArray(data.daily.time)) {
+                            throw new Error('Invalid weather response');
+                        }
+
+                        currentWeather.value = data.current;
+                        weeklyWeather.value = data.daily.time.map((date, index) => ({
+                            date,
+                            weather_code: data.daily.weather_code?.[index] ?? 0,
+                            max_temperature: data.daily.temperature_2m_max?.[index] ?? 0,
+                            min_temperature: data.daily.temperature_2m_min?.[index] ?? 0,
+                            precipitation_probability: data.daily.precipitation_probability_max?.[index] ?? 0
+                        }));
+                    } catch (error) {
+                        console.error('날씨 조회 오류:', error);
+                        currentWeather.value = null;
+                        weeklyWeather.value = [];
+                        weatherError.value = language.value === 'en'
+                            ? 'Please check your internet connection and try again.'
+                            : '인터넷 연결 상태를 확인한 뒤 다시 시도해 주세요.';
+                    } finally {
+                        weatherLoading.value = false;
+                    }
                 };
 
                 const normalizePost = (post) => ({
@@ -1316,13 +1549,14 @@
                     initSession();
                     initLanguage();
                     loadChatHistory();
-                    await Promise.all([loadPosts(), loadLocations()]);
+                    await Promise.all([loadPosts(), loadLocations(), loadWeather()]);
                     const savedPostId = Number(sessionStorage.getItem('localhub_current_post_id'));
                     if (savedPostId) await viewPostDetail(savedPostId);
                 });
 
                 return {
                     currentView, searchQuery, sortType, infoCategories, activeCategory,
+                    currentWeather, weeklyWeather, weatherLoading, weatherError,
                     posts, currentPost, comments, commentInput, commentPassword, commentSubmitting, postForm,
                     showAuthModal, authPassword, authMode, editingCommentId, commentEditDraft, commentEditPassword, deletingCommentId, commentDeletePassword,
                     isChatOpen, chatInput, chatHistory, chatBox,
@@ -1335,6 +1569,7 @@
                     startEditComment, cancelCommentEdit, saveCommentEdit,
                     startDeleteComment, cancelCommentDelete, confirmDeleteComment,
                     clearChatHistory, sendChatMessage, regenerateSession,
+                    loadWeather, getWeatherLabel, getWeatherIcon, formatWeatherDay, formatWeatherDate, formatWeatherTime,
                     t, setLanguage, getCategoryName, hasLocationCoordinates
                 };
             }
