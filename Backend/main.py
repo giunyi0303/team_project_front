@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from fastapi import Body, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
@@ -136,11 +137,18 @@ def health(db: Session = Depends(get_db)):
     }
 
 
-@app.get("/api/locations", response_model=list[schemas.LocationResponse])
+class LocationPageResponse(BaseModel):
+    items: list[schemas.LocationResponse]
+    total: int
+    limit: int
+    offset: int
+
+
+@app.get("/api/locations", response_model=LocationPageResponse)
 def get_locations(
     category: Optional[str] = Query(default=None),
     keyword: Optional[str] = Query(default=None),
-    limit: int = Query(default=24, ge=1, le=100),
+    limit: int = Query(default=15, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
@@ -150,21 +158,32 @@ def get_locations(
         query = query.filter(models.Location.category == category)
 
     if keyword:
-        pattern = f"%{keyword.strip()}%"
-        query = query.filter(
-            or_(
-                models.Location.title.like(pattern),
-                models.Location.address.like(pattern),
-                models.Location.address_detail.like(pattern),
+        keyword = keyword.strip()
+        if keyword:
+            pattern = f"%{keyword}%"
+            query = query.filter(
+                or_(
+                    models.Location.title.like(pattern),
+                    models.Location.address.like(pattern),
+                    models.Location.address_detail.like(pattern),
+                )
             )
-        )
 
-    return (
+    total = query.count()
+
+    items = (
         query.order_by(models.Location.title.asc())
         .offset(offset)
         .limit(limit)
         .all()
     )
+
+    return {
+        "items": items,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @app.get("/api/locations/{location_id}", response_model=schemas.LocationResponse)

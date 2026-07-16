@@ -301,7 +301,7 @@
                             </h2>
                             <span
                                 class="text-xs font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-full border border-indigo-100 shadow-sm">
-                                {{ t('public_data_count', { count: getActiveCategoryItems().length }) }}
+                                {{ t('public_data_count', { count: locationTotal }) }}
                             </span>
                         </div>
 
@@ -346,6 +346,32 @@
                                         똑똑! 지도 정보 확인 &rarr;
                                     </span>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- 지역 정보 페이지네이션 -->
+                        <div v-if="locationTotal > 0"
+                            class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border-2 border-stone-100 rounded-3xl px-5 py-4 shadow-sm">
+                            <p class="text-xs font-bold text-slate-500">
+                                전체 {{ locationTotal }}개 · 현재 {{ locationPage }} / {{ locationTotalPages }}페이지
+                            </p>
+
+                            <div class="flex items-center gap-2">
+                                <button @click="moveLocationPage(locationPage - 1)"
+                                    :disabled="locationPage <= 1 || locationsLoading"
+                                    class="px-4 py-2.5 rounded-xl border-2 border-stone-200 bg-white text-xs font-black text-slate-600 hover:border-indigo-200 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                                    이전
+                                </button>
+
+                                <span class="min-w-24 text-center px-4 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-black">
+                                    {{ locationPage }} / {{ locationTotalPages }}
+                                </span>
+
+                                <button @click="moveLocationPage(locationPage + 1)"
+                                    :disabled="locationPage >= locationTotalPages || locationsLoading"
+                                    class="px-4 py-2.5 rounded-xl border-2 border-stone-200 bg-white text-xs font-black text-slate-600 hover:border-indigo-200 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                                    다음
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -936,11 +962,17 @@
 
         createApp({
             setup() {
-                const API_BASE_URL =
-                    window.location.hostname === 'localhost' ||
-                        window.location.hostname === '127.0.0.1'
-                        ? 'http://127.0.0.1:8000'
-                        : 'https://team-project-1-9o3k.onrender.com';
+                
+                const getApiBaseUrl = () => {
+                    if (window._env_ && window._env_.API_BASE_URL && window._env_.API_BASE_URL.trim() !== "") {
+                        return window._env_.API_BASE_URL.trim();
+                    }
+                    
+                    return 'http://127.0.0.1:8000';
+                };
+
+                const API_BASE_URL = getApiBaseUrl();
+
 
                 const currentView = ref(sessionStorage.getItem('localhub_last_view') || 'home');
                 const searchQuery = ref('');
@@ -1187,6 +1219,12 @@
                 const activeCategory = ref('all'); // 기본값을 'all'로 수정하여 전 장소 모아보기 지원 ⚡
                 const locationItems = ref([]);
                 const locationsLoading = ref(false);
+                const locationPage = ref(1);
+                const locationPageSize = 15;
+                const locationTotal = ref(0);
+                const locationTotalPages = computed(() =>
+                    Math.max(1, Math.ceil(locationTotal.value / locationPageSize))
+                );
                 const showLocationModal = ref(false);
                 const selectedLocation = ref(null);
                 const mapContainer = ref(null);
@@ -1435,35 +1473,80 @@
                 const loadLocations = async () => {
                     locationsLoading.value = true;
                     try {
-                        const category = categoryMap[activeCategory.value];
-                        // 'all' 상태일 때는 카테고리 쿼리 파라미터를 생략하여 통합 수집하고 limit을 50으로 상향 조정 ⚡
-                        const url = activeCategory.value === 'all'
-                            ? `${API_BASE_URL}/api/locations?limit=50`
-                            : `${API_BASE_URL}/api/locations?category=${encodeURIComponent(category)}&limit=30`;
+                        const category = categoryMap[activeCategory.value]; // 'all'이면 undefined
+                        const offset = (locationPage.value - 1) * locationPageSize;
+                        const params = new URLSearchParams({
+                            limit: locationPageSize,
+                            offset: offset
+                        });
+                        if (category) {
+                            params.set('category', category); // 'all'일 땐 아예 추가 안 함
+                        }
+                        const data = await request(`${API_BASE_URL}/api/locations?${params.toString()}`);
 
-                        const data = await request(url);
-                        locationItems.value = data.map(item => ({
+                        // 페이지네이션 백엔드는 반드시 { items, total, limit, offset } 형식으로 응답해야 합니다.
+                        if (
+                            !data ||
+                            Array.isArray(data) ||
+                            !Array.isArray(data.items) ||
+                            !Number.isFinite(Number(data.total))
+                        ) {
+                            throw new Error(
+                                '지역 정보 API 응답 형식이 올바르지 않습니다. 수정된 백엔드 main.py가 실행 중인지 확인해 주세요.'
+                            );
+                        }
+
+                        const items = data.items;
+                        locationTotal.value = Number(data.total);
+
+                        locationItems.value = items.map(item => ({
                             id: item.id,
                             title: item.title,
                             subTag: item.category,
-                            location: item.address + ' ' + item.address_detail || '주소 정보 없음',
+                            location: [item.address, item.address_detail].filter(Boolean).join(' ') || '주소 정보 없음',
                             desc: item.telephone || '',
                             image: item.image_url || item.thumbnail_url,
                             longitude: item.longitude,
                             latitude: item.latitude,
                             telephone: item.telephone || '번호 정보 없음'
                         }));
+
+                        if (locationPage.value > locationTotalPages.value) {
+                            locationPage.value = locationTotalPages.value;
+                            await loadLocations();
+                        }
                     } catch (error) {
-                        console.error(error);
+                        console.error('지역 정보 조회 오류:', error);
                         locationItems.value = [];
-                        alert('지역 정보를 불러오지 못했습니다. FastAPI 서버가 실행 중인지 확인해 주세요.');
+                        locationTotal.value = 0;
+                        alert(`지역 정보를 불러오지 못했습니다.\n${error.message}`);
                     } finally {
                         locationsLoading.value = false;
                     }
                 };
 
+                const moveLocationPage = async (page) => {
+                    if (
+                        locationsLoading.value ||
+                        page < 1 ||
+                        page > locationTotalPages.value ||
+                        page === locationPage.value
+                    ) {
+                        return;
+                    }
+
+                    locationPage.value = page;
+                    await loadLocations();
+
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                };
+
                 const selectCategory = async (catId) => {
                     activeCategory.value = catId;
+                    locationPage.value = 1;
                     await loadLocations();
                 };
 
@@ -1933,8 +2016,9 @@
                     showAuthModal, authPassword, authMode, editingCommentId, commentEditDraft, commentEditPassword, deletingCommentId, commentDeletePassword,
                     isChatOpen, chatInput, chatHistory, chatBox,
                     sessionId, showSessionModal, locationsLoading,
+                    locationPage, locationPageSize, locationTotal, locationTotalPages,
                     showLocationModal, selectedLocation, mapContainer,
-                    language, navigateTo, selectCategory, openLocationModal, closeLocationModal, getActiveCategoryName,
+                    language, navigateTo, selectCategory, moveLocationPage, openLocationModal, closeLocationModal, getActiveCategoryName,
                     getActiveCategoryItems, viewPostDetail, triggerSearch,
                     filteredPosts, cancelPostForm, submitPost, submitComment,
                     openAuthModal, closeAuthModal, submitAuthPassword,
