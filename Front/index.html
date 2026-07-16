@@ -327,7 +327,7 @@
                                 <div class="mt-4 pt-3.5 border-t border-stone-50 flex items-center justify-end">
                                     <span
                                         class="text-xs font-black text-indigo-600 bg-indigo-50 px-3.5 py-2 rounded-2xl group-hover:translate-x-1.5 transition-transform">
-                                        똑똑! 친구 추천 정보 확인 &rarr;
+                                        똑똑! 지도 정보 확인 &rarr;
                                     </span>
                                 </div>
                             </div>
@@ -847,10 +847,10 @@
                             <!-- 하단 상세 메타 소식첩 -->
                             <div
                                 class="text-xs sm:text-sm text-slate-700 space-y-3 font-bold bg-[#FAF6F0]/70 p-5 rounded-3xl border border-stone-200/50">
-                                <div v-if="selectedLocation.address" class="flex items-start gap-1.5">
+                                <!-- <div v-if="selectedLocation.address" class="flex items-start gap-1.5">
                                     <strong class="text-slate-900 shrink-0">🏠 주소:</strong>
                                     <span class="text-slate-600 font-semibold">{{ selectedLocation.address }}</span>
-                                </div>
+                                </div> -->
                                 <div v-if="selectedLocation.telephone" class="flex items-start gap-1.5">
                                     <strong class="text-slate-900 shrink-0">📞 전화:</strong>
                                     <span class="text-slate-600 font-semibold">{{ selectedLocation.telephone }}</span>
@@ -1406,7 +1406,8 @@
                             desc: item.telephone || '',
                             image: item.image_url || item.thumbnail_url,
                             longitude: item.longitude,
-                            latitude: item.latitude
+                            latitude: item.latitude,
+                            telephone: item.telephone || '번호 정보 없음'
                         }));
                     } catch (error) {
                         console.error(error);
