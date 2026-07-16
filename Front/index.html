@@ -963,15 +963,11 @@
         createApp({
             setup() {
                 
-                const getApiBaseUrl = () => {
-                    if (window._env_ && window._env_.API_BASE_URL && window._env_.API_BASE_URL.trim() !== "") {
-                        return window._env_.API_BASE_URL.trim();
-                    }
-                    
-                    return 'http://127.0.0.1:8000';
-                };
-
-                const API_BASE_URL = getApiBaseUrl();
+                                const API_BASE_URL = window.__ENV__?.API_BASE_URL || (
+                    (window.location.protocol.startsWith('http') && window.location.port === '8000')
+                        ? window.location.origin
+                        : 'http://127.0.0.1:8000'
+                );
 
 
                 const currentView = ref(sessionStorage.getItem('localhub_last_view') || 'home');
