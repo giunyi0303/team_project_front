@@ -930,7 +930,7 @@
                         ? 'http://127.0.0.1:8000'
                         : 'https://team-project-1-9o3k.onrender.com';
 
-                const currentView = ref('home');
+                const currentView = ref(sessionStorage.getItem('localhub_last_view') || 'home');
                 const searchQuery = ref('');
                 const activeSearch = ref('');
                 const sortType = ref('date');
@@ -1349,6 +1349,9 @@
 
                 const navigateTo = (viewName) => {
                     currentView.value = viewName;
+                    // 새로고침 복구를 위해 이동할 때마다 마지막 화면을 기록
+                    sessionStorage.setItem('localhub_last_view', viewName);
+
                     if (viewName === 'home') {
                         resetBoardSearch();
                         loadPosts();
@@ -1356,6 +1359,12 @@
                         resetBoardSearch();
                         loadPosts();
                     }
+
+                    // 상세 글 작성이나 다른 뷰로 갈 때 저장되어 있던 이전 상세 게시글 캐시를 지워 오작동 예방
+                    if (viewName !== 'post-detail' && viewName !== 'post-edit') {
+                        sessionStorage.removeItem('localhub_current_post_id');
+                    }
+
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 };
 
@@ -1542,7 +1551,7 @@
                         };
                         comments.value = Array.isArray(commentsData) ? commentsData : [];
 
-                        if (currentPost.value?.id === postId) {
+                        if (!currentPost.value || currentPost.value.id === postId) {
                             currentPost.value = normalizedPost;
                         }
 
@@ -1559,9 +1568,10 @@
                     try {
                         currentPost.value = { id };
                         comments.value = [];
-                        currentView.value = 'post-detail';
+                        
                         sessionStorage.setItem('localhub_current_post_id', String(id));
-
+                        sessionStorage.setItem('localhub_last_view', 'post-detail');
+                        currentView.value = 'post-detail';
                         window.scrollTo({ top: 0, behavior: 'smooth' });
 
                         await refreshPostState(id);
@@ -1831,12 +1841,44 @@
                 });
 
                 onMounted(async () => {
-                    initSession();
                     initLanguage();
-                    loadChatHistory();
-                    await Promise.all([loadPosts(), loadLocations(), loadWeather()]);
-                    const savedPostId = Number(sessionStorage.getItem('localhub_current_post_id'));
-                    if (savedPostId) await viewPostDetail(savedPostId);
+                    initSession();
+
+                    // 새로고침으로 유실된 이전 페이지 복구 프로세스 ⚡
+                    const savedView = sessionStorage.getItem('localhub_last_view');
+                    const savedPostId = sessionStorage.getItem('localhub_current_post_id');
+
+                    if (savedView === 'post-detail' && savedPostId) {
+                        // 이전에 게시글 상세보기를 하던 중 새로고침을 한 경우
+                        currentView.value = 'post-detail';
+                        currentPost.value = { id: Number(savedPostId) }; // 먼저 세팅해야 refreshPostState가 값을 채울 수 있음
+                        await refreshPostState(Number(savedPostId)); // 게시글 다시 로드 및 복구
+                    } else if (savedView === 'post-create' || savedView === 'post-edit') {
+                        // 작성/수정 중이던 내용은 보존되지 않으므로 게시판으로 안전하게 복귀
+                        currentView.value = 'board';
+                        sessionStorage.setItem('localhub_last_view', 'board');
+                        await loadPosts();
+                    } else if (savedView) {
+                        // 그 외 홈이나 일반 게시판 화면에 있었던 경우
+                        currentView.value = savedView;
+                        if (savedView === 'home' || savedView === 'board') {
+                            await loadPosts(); // 리스트 갱신
+                        }
+                    } else {
+                        // 최초 접속한 경우 기본동작
+                        await loadPosts();
+                    }
+
+                    await loadWeather();
+                    await loadLocations();
+
+                    // 글쓰기/수정 중 새로고침·창 닫기 시 작성 내용 유실 경고
+                    window.addEventListener('beforeunload', (event) => {
+                        if (currentView.value === 'post-create' || currentView.value === 'post-edit') {
+                            event.preventDefault();
+                            event.returnValue = '';
+                        }
+                    });
                 });
 
                 return {
