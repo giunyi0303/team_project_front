@@ -38,7 +38,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Google Fonts - Pretendard -->
     <link rel="stylesheet" as="style" crossorigin
-        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+        href="https://cdn.tailwindcss.com/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <style>
         body {
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
@@ -178,7 +178,6 @@
                             <h3 class="font-black text-slate-800 tracking-tight flex items-center gap-1.5 truncate">
                                 🌤️ {{ t('weather_title') }}
                             </h3>
-                            <!-- 애니메이션 제거 및 크기 축소 -->
                         </div>
 
                         <!-- 실시간 핵심 온도 비주얼 -->
@@ -246,6 +245,24 @@
                                 <span>{{ getCategoryName(cat.id) }}</span>
                             </button>
                         </div>
+
+                        <!-- 큐레이션 상세 검색 필드 -->
+                        <div class="pt-4 border-t border-stone-100 space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider">🔍 {{ language === 'en' ? 'Search Curation' : '큐레이션 상세 검색' }}</label>
+                            <div class="flex gap-2">
+                                <input v-model="locationSearchInput" @keyup.enter="searchLocations" type="text"
+                                    :placeholder="language === 'en' ? 'Search locations...' : '장소명, 주소, 설명 검색...'"
+                                    class="flex-1 bg-stone-50 border border-stone-200 rounded-2xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all font-semibold">
+                                <button @click="searchLocations"
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-4 py-2.5 rounded-2xl text-xs transition-colors shadow-md shadow-indigo-100">
+                                    {{ language === 'en' ? 'Search' : '검색' }}
+                                </button>
+                            </div>
+                            <div v-if="locationSearchQuery" class="flex justify-between items-center pt-1">
+                                <span class="text-[10px] text-slate-400 font-bold">"{{ locationSearchQuery }}" 검색 적용 중</span>
+                                <button @click="clearLocationSearch" class="text-[10px] text-rose-500 font-black hover:underline">필터 초기화 🔄</button>
+                            </div>
+                        </div>
                     </div>
 
                 </aside>
@@ -258,11 +275,6 @@
                         class="group bg-gradient-to-r from-stone-900 to-indigo-950 text-white rounded-[2.5rem] overflow-hidden shadow-xl border-4 border-white transition-all">
                         <summary
                             class="flex items-center justify-between p-6 sm:px-8 cursor-pointer select-none outline-none">
-                            <!-- <span
-                                class="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm text-indigo-200 text-[10px] font-black px-3.5 py-1.5 rounded-full border border-white/10">
-                                <span class="w-1.5 h-1.5 rounded-full bg-sky-300 animate-pulse"></span>
-                                {{ t('hero_badge') }}
-                            </span> -->
                             <span></span>
                             <span class="text-xs font-bold text-indigo-300 group-open:hidden">배너 열기 &darr;</span>
                             <span class="text-xs font-bold text-indigo-300 hidden group-open:inline">배너 접기 &uarr;</span>
@@ -295,6 +307,10 @@
 
                         <!-- 큐레이션 카드 그리드 (클릭 시 우측 슬라이드 오버 드로어 호출) -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div v-if="getActiveCategoryItems().length === 0"
+                                class="col-span-full text-center py-16 bg-white border-2 border-dashed border-stone-200 rounded-[2rem] text-slate-400 font-bold">
+                                🔍 검색 조건에 맞는 동네 장소가 보이지 않네요. 다른 단어로 검색해 보세요!
+                            </div>
                             <div v-for="item in getActiveCategoryItems()" :key="item.id"
                                 @click="openLocationModal(item)"
                                 class="group bg-white border-2 border-stone-100 rounded-[2rem] p-5 hover:shadow-xl hover:shadow-indigo-50/20 hover:border-indigo-200 transition-all duration-300 flex flex-col justify-between cursor-pointer overflow-hidden relative">
@@ -334,7 +350,7 @@
                         </div>
                     </div>
 
-                    <!-- 최근 익명 게시글 영역 (포스트잇 코크보드 디자인으로 완전히 변경) -->
+                    <!-- 최근 익명 게시글 영역 -->
                     <div class="space-y-5">
                         <div class="flex items-center justify-between">
                             <h2
@@ -847,10 +863,6 @@
                             <!-- 하단 상세 메타 소식첩 -->
                             <div
                                 class="text-xs sm:text-sm text-slate-700 space-y-3 font-bold bg-[#FAF6F0]/70 p-5 rounded-3xl border border-stone-200/50">
-                                <!-- <div v-if="selectedLocation.address" class="flex items-start gap-1.5">
-                                    <strong class="text-slate-900 shrink-0">🏠 주소:</strong>
-                                    <span class="text-slate-600 font-semibold">{{ selectedLocation.address }}</span>
-                                </div> -->
                                 <div v-if="selectedLocation.telephone" class="flex items-start gap-1.5">
                                     <strong class="text-slate-900 shrink-0">📞 전화:</strong>
                                     <span class="text-slate-600 font-semibold">{{ selectedLocation.telephone }}</span>
@@ -939,6 +951,10 @@
                 const weeklyWeather = ref([]);
                 const weatherLoading = ref(false);
                 const weatherError = ref('');
+
+                // 장소 큐레이션 내부 상세 필터링을 위한 검색 상태 추가 ⚡
+                const locationSearchInput = ref('');
+                const locationSearchQuery = ref('');
 
                 const translations = {
                     ko: {
@@ -1125,6 +1141,7 @@
 
                 const categoryNames = {
                     ko: {
+                        all: '전체 큐레이션',
                         tourist: '관광지',
                         culture: '문화시설',
                         sports: '레포츠',
@@ -1134,6 +1151,7 @@
                         festival: '축제공연'
                     },
                     en: {
+                        all: 'All Curations',
                         tourist: 'Attractions',
                         culture: 'Culture',
                         sports: 'Sports',
@@ -1144,7 +1162,9 @@
                     }
                 };
 
+                // 'all' (전체) 카테고리 최상단에 배치 ⚡
                 const infoCategories = [
+                    { id: 'all', emoji: '✨' },
                     { id: 'tourist', emoji: '🏔️' },
                     { id: 'culture', emoji: '🏛️' },
                     { id: 'sports', emoji: '🏄' },
@@ -1164,7 +1184,7 @@
                     festival: '축제공연행사'
                 };
 
-                const activeCategory = ref('tourist');
+                const activeCategory = ref('all'); // 기본값을 'all'로 수정하여 전 장소 모아보기 지원 ⚡
                 const locationItems = ref([]);
                 const locationsLoading = ref(false);
                 const showLocationModal = ref(false);
@@ -1397,16 +1417,31 @@
 
                 const getActiveCategoryName = () => getCategoryName(activeCategory.value);
 
-
-                const getActiveCategoryItems = () => locationItems.value;
+                // 검색어 필터링이 가미된 리스트 바인딩 연산 구현 ⚡
+                const getActiveCategoryItems = () => {
+                    if (!locationSearchQuery.value.trim()) {
+                        return locationItems.value;
+                    }
+                    const query = locationSearchQuery.value.toLowerCase().trim();
+                    return locationItems.value.filter(item => {
+                        const titleMatch = item.title && item.title.toLowerCase().includes(query);
+                        const descMatch = item.desc && item.desc.toLowerCase().includes(query);
+                        const locMatch = item.location && item.location.toLowerCase().includes(query);
+                        const tagMatch = item.subTag && item.subTag.toLowerCase().includes(query);
+                        return titleMatch || descMatch || locMatch || tagMatch;
+                    });
+                };
 
                 const loadLocations = async () => {
                     locationsLoading.value = true;
                     try {
                         const category = categoryMap[activeCategory.value];
-                        const data = await request(
-                            `${API_BASE_URL}/api/locations?category=${encodeURIComponent(category)}&limit=30`
-                        );
+                        // 'all' 상태일 때는 카테고리 쿼리 파라미터를 생략하여 통합 수집하고 limit을 50으로 상향 조정 ⚡
+                        const url = activeCategory.value === 'all'
+                            ? `${API_BASE_URL}/api/locations?limit=50`
+                            : `${API_BASE_URL}/api/locations?category=${encodeURIComponent(category)}&limit=30`;
+
+                        const data = await request(url);
                         locationItems.value = data.map(item => ({
                             id: item.id,
                             title: item.title,
@@ -1430,6 +1465,16 @@
                 const selectCategory = async (catId) => {
                     activeCategory.value = catId;
                     await loadLocations();
+                };
+
+                // 장소 검색 트리거 및 해제 기능 구현 ⚡
+                const searchLocations = () => {
+                    locationSearchQuery.value = locationSearchInput.value;
+                };
+
+                const clearLocationSearch = () => {
+                    locationSearchInput.value = '';
+                    locationSearchQuery.value = '';
                 };
 
                 const hasLocationCoordinates = (item) => {
@@ -1897,7 +1942,8 @@
                     startDeleteComment, cancelCommentDelete, confirmDeleteComment,
                     clearChatHistory, sendChatMessage, regenerateSession,
                     loadWeather, getWeatherLabel, getWeatherIcon, formatWeatherDay, formatWeatherDate, formatWeatherTime,
-                    t, setLanguage, getCategoryName, hasLocationCoordinates
+                    t, setLanguage, getCategoryName, hasLocationCoordinates,
+                    locationSearchInput, locationSearchQuery, searchLocations, clearLocationSearch // 신규 반환 바인딩 추가 ⚡
                 };
             }
         }).mount('#app');
